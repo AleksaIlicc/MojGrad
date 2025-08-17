@@ -1,19 +1,11 @@
 package com.mojgrad.ui.screens
 
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -22,9 +14,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -33,14 +22,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.rememberAsyncImagePainter
 import com.mojgrad.ui.theme.MojGradTheme
+import com.mojgrad.ui.viewmodel.AuthUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistrationScreen(
+    uiState: AuthUiState,
     onRegisterClick: (String, String, String, String, Uri?) -> Unit,
     onNavigateToLogin: () -> Unit,
+    onClearError: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var firstName by remember { mutableStateOf("") }
@@ -51,14 +42,6 @@ fun RegistrationScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
-    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-
-    // Launcher za izbor slike iz galerije
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        selectedImageUri = uri
-    }
 
     Column(
         modifier = modifier
@@ -84,65 +67,33 @@ fun RegistrationScreen(
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
-        // Slika profila
-        Box(
-            modifier = Modifier
-                .size(120.dp)
-                .padding(bottom = 24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (selectedImageUri != null) {
-                Image(
-                    painter = rememberAsyncImagePainter(selectedImageUri),
-                    contentDescription = "Profilna slika",
-                    modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                        .clickable { imagePickerLauncher.launch("image/*") },
-                    contentScale = ContentScale.Crop
+        // Prikaz greške
+        uiState.errorMessage?.let { error ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
                 )
-            } else {
-                Box(
+            ) {
+                Row(
                     modifier = Modifier
-                        .size(120.dp)
-                        .clip(CircleShape)
-                        .border(2.dp, MaterialTheme.colorScheme.outline, CircleShape)
-                        .clickable { imagePickerLauncher.launch("image/*") },
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Dodaj sliku",
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.outline
-                        )
-                        Text(
-                            text = "Dodaj sliku",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.outline
-                        )
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(onClick = onClearError) {
+                        Text("OK")
                     }
                 }
             }
-        }
-
-        // Button za izbor slike
-        OutlinedButton(
-            onClick = { imagePickerLauncher.launch("image/*") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = null,
-                modifier = Modifier.padding(end = 8.dp)
-            )
-            Text("Izaberi sliku")
         }
 
         // Ime polje
@@ -290,23 +241,31 @@ fun RegistrationScreen(
         Button(
             onClick = {
                 val fullName = "$firstName $lastName"
-                onRegisterClick(email, password, fullName, phoneNumber, selectedImageUri)
+                onRegisterClick(email, password, fullName, phoneNumber, null) // Uvek null za sliku
             },
             enabled = firstName.isNotBlank() && 
                      lastName.isNotBlank() && 
                      phoneNumber.isNotBlank() && 
                      email.isNotBlank() && 
                      password.isNotBlank() && 
-                     confirmPassword == password,
+                     confirmPassword == password &&
+                     !uiState.isLoading,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp)
         ) {
-            Text(
-                text = "Registruj se",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
-            )
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Text(
+                    text = "Registruj se",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
 
         // Tekst za navigaciju ka prijavi
@@ -335,8 +294,10 @@ fun RegistrationScreen(
 fun RegistrationScreenPreview() {
     MojGradTheme {
         RegistrationScreen(
+            uiState = AuthUiState(),
             onRegisterClick = { _, _, _, _, _ -> },
-            onNavigateToLogin = { }
+            onNavigateToLogin = { },
+            onClearError = { }
         )
     }
 }
