@@ -12,10 +12,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.mojgrad.ui.screens.HomeScreen
+import com.mojgrad.ui.screens.AddProblemScreen
 import com.mojgrad.ui.screens.LoginScreen
 import com.mojgrad.ui.screens.MainScreen
-import com.mojgrad.ui.screens.MapScreen
 import com.mojgrad.ui.screens.RegistrationScreen
 import com.mojgrad.ui.viewmodel.AuthViewModel
 
@@ -24,6 +23,7 @@ object Routes {
     const val LOGIN = "login"
     const val REGISTER = "register"
     const val MAIN = "main"
+    const val ADD_PROBLEM = "add_problem"
 }
 
 @Composable
@@ -76,7 +76,16 @@ fun MojGradNavigation(
 
         // Main ekran sa Bottom Navigation
         composable(Routes.MAIN) {
-            MainScreen()
+            MainScreen(rootNavController = navController)
+        }
+
+        // Ekran za dodavanje problema
+        composable(Routes.ADD_PROBLEM) {
+            AddProblemScreen(
+                onProblemAdded = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 

@@ -21,23 +21,27 @@ class MapViewModel : ViewModel() {
         _isLoading.value = true
         val db = FirebaseFirestore.getInstance()
         
-        db.collection("problems").get()
-            .addOnSuccessListener { result ->
-                val problemList = result.map { document ->
-                    document.toObject(Problem::class.java).copy(id = document.id)
+        // Koristimo addSnapshotListener za real-time updates
+        db.collection("problems")
+            .addSnapshotListener { snapshot, e ->
+                if (e != null) {
+                    println("DEBUG: Error listening to problems: ${e.message}")
+                    _isLoading.value = false
+                    return@addSnapshotListener
                 }
-                _problems.value = problemList
-                _isLoading.value = false
-                println("DEBUG: Loaded ${problemList.size} problems from Firestore")
+
+                if (snapshot != null) {
+                    val problemList = snapshot.documents.map { document ->
+                        document.toObject(Problem::class.java)?.copy(id = document.id)
+                    }.filterNotNull()
+                    
+                    _problems.value = problemList
+                    _isLoading.value = false
+                    println("DEBUG: Real-time update - Loaded ${problemList.size} problems from Firestore")
+                } else {
+                    println("DEBUG: No data")
+                    _isLoading.value = false
+                }
             }
-            .addOnFailureListener { exception ->
-                println("DEBUG: Error loading problems: ${exception.message}")
-                _isLoading.value = false
-                // Obradi grešku
-            }
-    }
-    
-    fun refreshProblems() {
-        fetchProblems()
     }
 }

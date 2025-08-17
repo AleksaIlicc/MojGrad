@@ -16,9 +16,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
 
 @Composable
-fun MainScreen() {
+fun MainScreen(rootNavController: NavHostController) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     
     val tabs = listOf(
@@ -42,7 +43,10 @@ fun MainScreen() {
         }
     ) { innerPadding ->
         when (selectedTabIndex) {
-            0 -> MapScreen(modifier = Modifier.padding(innerPadding))
+            0 -> MapScreen(
+                modifier = Modifier.padding(innerPadding),
+                rootNavController = rootNavController
+            )
             1 -> ListaScreen()
             2 -> RangListaScreen()
         }
