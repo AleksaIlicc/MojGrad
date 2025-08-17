@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,6 +23,7 @@ import com.mojgrad.data.model.User
 fun HomeScreen(
     uiState: AuthUiState,
     onLogoutClick: () -> Unit,
+    onMapClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -130,6 +132,21 @@ fun HomeScreen(
                     textAlign = TextAlign.Center
                 )
             }
+        }
+
+        // Dugme za pristup mapi
+        Button(
+            onClick = onMapClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp, vertical = 8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.LocationOn,
+                contentDescription = null,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            Text("Prikaži Mapu")
         }
 
         // Dugme za odjavu (privremeno)

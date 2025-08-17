@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.mojgrad.ui.screens.HomeScreen
 import com.mojgrad.ui.screens.LoginScreen
+import com.mojgrad.ui.screens.MapScreen
 import com.mojgrad.ui.screens.RegistrationScreen
 import com.mojgrad.ui.viewmodel.AuthViewModel
 
@@ -22,6 +23,7 @@ object Routes {
     const val LOGIN = "login"
     const val REGISTER = "register"
     const val HOME = "home"
+    const val MAP = "map"
 }
 
 @Composable
@@ -78,8 +80,16 @@ fun MojGradNavigation(
                 uiState = uiState,
                 onLogoutClick = {
                     authViewModel.signOut()
+                },
+                onMapClick = {
+                    navController.navigate(Routes.MAP)
                 }
             )
+        }
+
+        // Map ekran
+        composable(Routes.MAP) {
+            MapScreen()
         }
     }
 
