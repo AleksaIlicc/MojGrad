@@ -1,6 +1,8 @@
 package com.mojgrad.ui.screens
 
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -18,7 +20,10 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.mojgrad.ui.viewmodel.MapViewModel
 
 @Composable
-fun MapScreen(mapViewModel: MapViewModel = viewModel()) {
+fun MapScreen(
+    modifier: Modifier = Modifier,
+    mapViewModel: MapViewModel = viewModel()
+) {
     val problems by mapViewModel.problems.collectAsState()
     
     // Stanje za kameru mape
@@ -40,7 +45,7 @@ fun MapScreen(mapViewModel: MapViewModel = viewModel()) {
 
     // Google Maps sa markerima
     GoogleMap(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
         properties = MapProperties(
             isMyLocationEnabled = false // Sigurno false da izbegne permission crash

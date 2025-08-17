@@ -14,6 +14,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.mojgrad.ui.screens.HomeScreen
 import com.mojgrad.ui.screens.LoginScreen
+import com.mojgrad.ui.screens.MainScreen
 import com.mojgrad.ui.screens.MapScreen
 import com.mojgrad.ui.screens.RegistrationScreen
 import com.mojgrad.ui.viewmodel.AuthViewModel
@@ -22,8 +23,7 @@ import com.mojgrad.ui.viewmodel.AuthViewModel
 object Routes {
     const val LOGIN = "login"
     const val REGISTER = "register"
-    const val HOME = "home"
-    const val MAP = "map"
+    const val MAIN = "main"
 }
 
 @Composable
@@ -74,22 +74,9 @@ fun MojGradNavigation(
             )
         }
 
-        // Home ekran
-        composable(Routes.HOME) {
-            HomeScreen(
-                uiState = uiState,
-                onLogoutClick = {
-                    authViewModel.signOut()
-                },
-                onMapClick = {
-                    navController.navigate(Routes.MAP)
-                }
-            )
-        }
-
-        // Map ekran
-        composable(Routes.MAP) {
-            MapScreen()
+        // Main ekran sa Bottom Navigation
+        composable(Routes.MAIN) {
+            MainScreen()
         }
     }
 
@@ -98,13 +85,13 @@ fun MojGradNavigation(
         val currentRoute = navController.currentDestination?.route
         
         when {
-            uiState.isLoggedIn && currentRoute != Routes.HOME -> {
-                navController.navigate(Routes.HOME) {
-                    // Obriši ceo back stack kada idemo na Home
+            uiState.isLoggedIn && currentRoute != Routes.MAIN -> {
+                navController.navigate(Routes.MAIN) {
+                    // Obriši ceo back stack kada idemo na Main
                     popUpTo(navController.graph.startDestinationId) {
                         inclusive = true
                     }
-                    // Spreči multiple kopije Home ekrana
+                    // Spreči multiple kopije Main ekrana
                     launchSingleTop = true
                 }
             }
