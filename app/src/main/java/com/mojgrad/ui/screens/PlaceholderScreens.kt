@@ -43,29 +43,5 @@ fun ListaScreen() {
 
 @Composable
 fun RangListaScreen() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "🏆",
-            style = MaterialTheme.typography.displayLarge
-        )
-        
-        Text(
-            text = "Rang Lista",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(vertical = 16.dp)
-        )
-        
-        Text(
-            text = "Ovde će biti prikazane rang liste korisnika po broju prijavljenih problema.",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+    LeaderboardScreen()
 }

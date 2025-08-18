@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -19,13 +20,17 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 
 @Composable
-fun MainScreen(rootNavController: NavHostController) {
+fun MainScreen(
+    rootNavController: NavHostController,
+    onSignOut: () -> Unit = {}
+) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     
     val tabs = listOf(
         Triple("Mapa", Icons.Default.LocationOn, "mapa"),
         Triple("Lista", Icons.Default.List, "lista"),
-        Triple("Rang Lista", Icons.Default.Star, "rang")
+        Triple("Rang Lista", Icons.Default.Star, "rang"),
+        Triple("Profil", Icons.Default.Person, "profil")
     )
 
     Scaffold(
@@ -49,6 +54,7 @@ fun MainScreen(rootNavController: NavHostController) {
             )
             1 -> ListaScreen()
             2 -> RangListaScreen()
+            3 -> UserProfileScreen(onSignOut = onSignOut)
         }
     }
 }

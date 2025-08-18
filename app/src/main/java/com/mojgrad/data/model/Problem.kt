@@ -7,5 +7,7 @@ data class Problem(
     val description: String = "",
     val category: String = "",
     val location: GeoPoint? = null,
-    val userId: String = ""
+    val userId: String = "",
+    val votes: Int = 0,
+    val status: String = "pending"
 )

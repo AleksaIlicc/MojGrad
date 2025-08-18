@@ -76,7 +76,12 @@ fun MojGradNavigation(
 
         // Main ekran sa Bottom Navigation
         composable(Routes.MAIN) {
-            MainScreen(rootNavController = navController)
+            MainScreen(
+                rootNavController = navController,
+                onSignOut = {
+                    authViewModel.signOut()
+                }
+            )
         }
 
         // Ekran za dodavanje problema

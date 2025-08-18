@@ -8,6 +8,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.text.SimpleDateFormat
+import java.util.*
 
 class AddProblemViewModel : ViewModel() {
 
@@ -50,13 +52,38 @@ class AddProblemViewModel : ViewModel() {
             "location" to GeoPoint(location.latitude, location.longitude),
             "timestamp" to FieldValue.serverTimestamp(),
             "userId" to currentUser.uid,
-            "status" to "pending" // Status može biti: pending, in_progress, resolved
+            "status" to "pending", // Status može biti: pending, in_progress, resolved
+            "votes" to 0 // Početna vrednost glasova
         )
 
         firestore.collection("problems")
             .add(problem)
-            .addOnSuccessListener {
-                println("DEBUG: Problem uspešno dodat u Firestore sa ID: ${it.id}")
+            .addOnSuccessListener { documentReference ->
+                println("DEBUG: Problem uspešno dodat u Firestore sa ID: ${documentReference.id}")
+                
+                // Dodeli poene korisniku za kreiranje problema (10 poena)
+                val currentMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
+                val userRef = firestore.collection("users").document(currentUser.uid)
+                
+                firestore.runTransaction { transaction ->
+                    val userSnapshot = transaction.get(userRef)
+                    val currentTotalPoints = userSnapshot.getLong("totalPoints") ?: 0L
+                    val monthlyPointsMap = userSnapshot.get("monthlyPoints") as? Map<String, Long> ?: emptyMap()
+                    val currentMonthPoints = monthlyPointsMap[currentMonth] ?: 0L
+                    
+                    val updatedMonthlyPoints = monthlyPointsMap.toMutableMap()
+                    updatedMonthlyPoints[currentMonth] = currentMonthPoints + 10
+                    
+                    transaction.update(userRef, mapOf(
+                        "totalPoints" to currentTotalPoints + 10,
+                        "monthlyPoints" to updatedMonthlyPoints
+                    ))
+                }.addOnSuccessListener {
+                    println("DEBUG: Uspešno dodeljeno 10 poena korisniku za kreiranje problema")
+                }.addOnFailureListener { e ->
+                    println("DEBUG: Greška pri dodeli poena: ${e.message}")
+                }
+                
                 _uploadState.value = UploadState.SUCCESS
             }
             .addOnFailureListener { e ->
