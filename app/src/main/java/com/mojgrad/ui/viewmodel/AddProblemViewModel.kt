@@ -1,17 +1,19 @@
 package com.mojgrad.ui.viewmodel
 
+import android.app.Application
 import android.location.Location
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.GeoPoint
+import com.mojgrad.location.LocationManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.text.SimpleDateFormat
 import java.util.*
 
-class AddProblemViewModel : ViewModel() {
+class AddProblemViewModel(application: Application) : AndroidViewModel(application) {
 
     enum class UploadState { IDLE, UPLOADING, SUCCESS, ERROR }
 
@@ -20,19 +22,31 @@ class AddProblemViewModel : ViewModel() {
 
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
+    private val locationManager = LocationManager.getInstance(application)
 
     fun addProblem(description: String, category: String) {
+        println("DEBUG: AddProblemViewModel - Starting to add problem")
         _uploadState.value = UploadState.UPLOADING
         
-        // Za početak, koristićemo fiksnu lokaciju (Beograd centar)
-        // U budućnosti možemo dodati pravu lokaciju korisnika
-        val defaultLocation = Location("default").apply {
-            latitude = 44.787197
-            longitude = 20.457273
+        // Pokušaj da dobiješ trenutnu lokaciju korisnika
+        locationManager.getCurrentLocationOnce { currentLocation ->
+            println("DEBUG: AddProblemViewModel - Location callback received: $currentLocation")
+            val location = if (currentLocation != null) {
+                Location("current").apply {
+                    latitude = currentLocation.latitude
+                    longitude = currentLocation.longitude
+                }
+            } else {
+                // Fallback na Beograd centar ako lokacija nije dostupna
+                Location("default").apply {
+                    latitude = 44.787197
+                    longitude = 20.457273
+                }
+            }
+            
+            println("DEBUG: Creating problem at location: ${location.latitude}, ${location.longitude}")
+            saveProblemToFirestore(description, category, location)
         }
-        
-        // Direktno čuvanje problema u Firestore bez slike
-        saveProblemToFirestore(description, category, defaultLocation)
     }
 
     private fun saveProblemToFirestore(
@@ -52,7 +66,7 @@ class AddProblemViewModel : ViewModel() {
             "location" to GeoPoint(location.latitude, location.longitude),
             "timestamp" to FieldValue.serverTimestamp(),
             "userId" to currentUser.uid,
-            "status" to "pending", // Status može biti: pending, in_progress, resolved
+            "status" to "PRIJAVLJENO", // Eksplicitno postavljamo status na "PRIJAVLJENO"
             "votes" to 0 // Početna vrednost glasova
         )
 

@@ -53,7 +53,7 @@ fun MainScreen(
                 rootNavController = rootNavController
             )
             1 -> ListaScreen()
-            2 -> RangListaScreen()
+            2 -> LeaderboardScreen() // Direktno koristi LeaderboardScreen
             3 -> UserProfileScreen(onSignOut = onSignOut)
         }
     }

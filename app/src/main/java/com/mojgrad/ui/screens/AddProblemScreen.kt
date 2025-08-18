@@ -29,6 +29,11 @@ fun AddProblemScreen(
     // Kategorije problema
     val categories = listOf("Saobraćaj", "Čistoća", "Infrastruktura", "Bezbednost", "Ostalo")
 
+    // Resetuj stanje kada se ekran učita
+    LaunchedEffect(Unit) {
+        viewModel.resetState()
+    }
+
     // Reagovanje na uspešan upload
     LaunchedEffect(uploadState) {
         if (uploadState == AddProblemViewModel.UploadState.SUCCESS) {

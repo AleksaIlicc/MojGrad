@@ -9,5 +9,5 @@ data class Problem(
     val location: GeoPoint? = null,
     val userId: String = "",
     val votes: Int = 0,
-    val status: String = "pending"
+    val status: String = "PRIJAVLJENO" 
 )

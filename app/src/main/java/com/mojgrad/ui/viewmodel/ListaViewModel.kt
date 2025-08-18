@@ -1,51 +1,39 @@
 package com.mojgrad.ui.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import com.google.android.gms.maps.model.LatLng
+import androidx.lifecycle.ViewModel
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.mojgrad.data.model.Problem
-import com.mojgrad.location.LocationManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-class MapViewModel(application: Application) : AndroidViewModel(application) {
+class ListaViewModel : ViewModel() {
     private val _problems = MutableStateFlow<List<Problem>>(emptyList())
     val problems: StateFlow<List<Problem>> = _problems
     
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
     
-    private val locationManager = LocationManager.getInstance(application)
-    
-    // Expose location states from LocationManager
-    val currentLocation: StateFlow<LatLng?> = locationManager.currentLocation
-    val isLocationAvailable: StateFlow<Boolean> = locationManager.isLocationAvailable
-    val locationPermissionGranted: StateFlow<Boolean> = locationManager.locationPermissionGranted
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage
 
     init {
         fetchProblems()
     }
-    
-    fun requestLocationPermissions(): Array<String> {
-        return locationManager.requestPermissions()
-    }
-    
-    fun onLocationPermissionsGranted() {
-        locationManager.onPermissionsGranted()
-    }
 
     private fun fetchProblems() {
         _isLoading.value = true
+        _errorMessage.value = null
         val db = FirebaseFirestore.getInstance()
         
-        // Koristimo addSnapshotListener za real-time updates
+        // Koristimo addSnapshotListener za real-time updates sa filterom za aktivne probleme
         db.collection("problems")
             .whereEqualTo("status", "PRIJAVLJENO") // Prikazuj samo aktivne probleme
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
-                    println("DEBUG: Error listening to problems: ${e.message}")
+                    _errorMessage.value = "Greška pri učitavanju problema: ${e.message}"
                     _isLoading.value = false
+                    println("DEBUG: Error listening to problems: ${e.message}")
                     return@addSnapshotListener
                 }
 
@@ -56,16 +44,17 @@ class MapViewModel(application: Application) : AndroidViewModel(application) {
                     
                     _problems.value = problemList
                     _isLoading.value = false
-                    println("DEBUG: Real-time update - Loaded ${problemList.size} problems from Firestore")
+                    println("DEBUG: Lista - Real-time update - Loaded ${problemList.size} active problems")
                 } else {
-                    println("DEBUG: No data")
+                    println("DEBUG: Lista - No data")
                     _isLoading.value = false
                 }
             }
     }
     
-    override fun onCleared() {
-        super.onCleared()
-        locationManager.stopLocationUpdates()
+    fun refreshProblems() {
+        // Sa real-time listener-om, ova funkcija nije potrebna
+        // Ali ostavljamo je za kompatibilnost
+        println("DEBUG: Lista refresh pozvan - real-time listener već automatski ažurira podatke")
     }
 }
