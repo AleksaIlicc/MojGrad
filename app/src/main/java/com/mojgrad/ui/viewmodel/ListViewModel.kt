@@ -10,10 +10,12 @@ import com.mojgrad.data.model.Problem
 import com.mojgrad.data.model.Vote
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 class ListViewModel : ViewModel() {
+    private val _allProblems = MutableStateFlow<List<Problem>>(emptyList())
     private val _problems = MutableStateFlow<List<Problem>>(emptyList())
     val problems: StateFlow<List<Problem>> = _problems
     
@@ -27,21 +29,67 @@ class ListViewModel : ViewModel() {
     private val _userVotes = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val userVotes: StateFlow<Map<String, Boolean>> = _userVotes
     
+    // Filter states
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery
+    
+    private val _selectedCategory = MutableStateFlow<String?>(null)
+    val selectedCategory: StateFlow<String?> = _selectedCategory
+    
+    private val _selectedAuthor = MutableStateFlow<String?>(null)
+    val selectedAuthor: StateFlow<String?> = _selectedAuthor
+    
+    private val _selectedStatus = MutableStateFlow("PRIJAVLJENO")
+    val selectedStatus: StateFlow<String> = _selectedStatus
+    
+    private val _sortBy = MutableStateFlow("newest") // "newest", "votes"
+    val sortBy: StateFlow<String> = _sortBy
+    
+    private val _dateRange = MutableStateFlow<Pair<Long?, Long?>>(null to null)
+    val dateRange: StateFlow<Pair<Long?, Long?>> = _dateRange
+    
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
     init {
         fetchProblems()
         fetchUserVotes()
+        // Apply filters whenever any filter changes
+        observeFilters()
+    }
+    
+    private fun observeFilters() {
+        viewModelScope.launch {
+            combine(
+                _allProblems,
+                _searchQuery,
+                _selectedCategory,
+                _selectedAuthor,
+                _selectedStatus,
+                _sortBy,
+                _dateRange
+            ) { flows ->
+                val allProblems = flows[0] as List<Problem>
+                val searchQuery = flows[1] as String
+                val category = flows[2] as String?
+                val author = flows[3] as String?
+                val status = flows[4] as String
+                val sortBy = flows[5] as String
+                val dateRange = flows[6] as Pair<Long?, Long?>
+                
+                applyFilters(allProblems, searchQuery, category, author, status, sortBy, dateRange)
+            }.collect { filteredProblems ->
+                _problems.value = filteredProblems
+            }
+        }
     }
 
     private fun fetchProblems() {
         _isLoading.value = true
         _errorMessage.value = null
         
-        // Fetch active problems (will sort client-side by timestamp)
+        // Fetch ALL problems for better filtering/searching
         db.collection("problems")
-            .whereEqualTo("status", "PRIJAVLJENO") // Only active problems
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
                     _errorMessage.value = "Error loading problems: ${e.message}"
@@ -54,11 +102,10 @@ class ListViewModel : ViewModel() {
                     val problemList = snapshot.documents.map { document ->
                         document.toObject(Problem::class.java)?.copy(id = document.id)
                     }.filterNotNull()
-                        .sortedByDescending { it.timestamp } // Client-side sorting by timestamp (newest first)
                     
-                    _problems.value = problemList
+                    _allProblems.value = problemList
                     _isLoading.value = false
-                    println("DEBUG: ListViewModel - Real-time update - Loaded ${problemList.size} active problems sorted by timestamp")
+                    println("DEBUG: ListViewModel - Real-time update - Loaded ${problemList.size} total problems")
                 } else {
                     println("DEBUG: ListViewModel - No data")
                     _isLoading.value = false
@@ -96,6 +143,106 @@ class ListViewModel : ViewModel() {
                     println("DEBUG: No vote snapshot data")
                 }
             }
+    }
+    
+    private fun applyFilters(
+        allProblems: List<Problem>,
+        searchQuery: String,
+        category: String?,
+        author: String?,
+        status: String,
+        sortBy: String,
+        dateRange: Pair<Long?, Long?>
+    ): List<Problem> {
+        return allProblems
+            .filter { problem ->
+                // Status filter
+                problem.status == status
+            }
+            .filter { problem ->
+                // Search filter (description and category)
+                if (searchQuery.isBlank()) true
+                else {
+                    problem.description.contains(searchQuery, ignoreCase = true) ||
+                    problem.category.contains(searchQuery, ignoreCase = true)
+                }
+            }
+            .filter { problem ->
+                // Category filter
+                category?.let { problem.category == it } ?: true
+            }
+            .filter { problem ->
+                // Author filter
+                author?.let { problem.authorName == it } ?: true
+            }
+            .filter { problem ->
+                // Date range filter
+                val (startDate, endDate) = dateRange
+                when {
+                    startDate != null && endDate != null && problem.timestamp != null -> {
+                        val problemTime = problem.timestamp!!.time
+                        problemTime >= startDate && problemTime <= endDate
+                    }
+                    startDate != null && problem.timestamp != null -> {
+                        problem.timestamp!!.time >= startDate
+                    }
+                    endDate != null && problem.timestamp != null -> {
+                        problem.timestamp!!.time <= endDate
+                    }
+                    else -> true
+                }
+            }
+            .let { filteredList ->
+                // Sort
+                when (sortBy) {
+                    "votes" -> filteredList.sortedByDescending { it.votes }
+                    "newest" -> filteredList.sortedByDescending { it.timestamp }
+                    else -> filteredList.sortedByDescending { it.timestamp }
+                }
+            }
+    }
+    
+    // Filter update functions
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+    
+    fun updateCategoryFilter(category: String?) {
+        _selectedCategory.value = category
+    }
+    
+    fun updateAuthorFilter(author: String?) {
+        _selectedAuthor.value = author
+    }
+    
+    fun updateStatusFilter(status: String) {
+        _selectedStatus.value = status
+    }
+    
+    fun updateSortBy(sortBy: String) {
+        _sortBy.value = sortBy
+    }
+    
+    fun updateDateRange(startDate: Long?, endDate: Long?) {
+        _dateRange.value = startDate to endDate
+    }
+    
+    fun clearAllFilters() {
+        _searchQuery.value = ""
+        _selectedCategory.value = null
+        _selectedAuthor.value = null
+        _selectedStatus.value = "PRIJAVLJENO"
+        _sortBy.value = "newest"
+        _dateRange.value = null to null
+    }
+    
+    // Get unique values for filter options
+    fun getUniqueCategories(): List<String> {
+        return _allProblems.value.map { it.category }.filter { it.isNotEmpty() }.distinct().sorted()
+    }
+    
+    fun getUniqueAuthors(): List<String> {
+        return _allProblems.value.map { it.authorName }.filter { it.isNotEmpty() }.distinct().sorted()
     }
     
     fun toggleVoteForProblem(problem: Problem) {
