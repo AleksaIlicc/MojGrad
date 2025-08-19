@@ -93,8 +93,10 @@ fun MainScreen(
                     }
                 }
             )
-            2 -> LeaderboardScreen() // Direktno koristi LeaderboardScreen
-            3 -> UserProfileScreen(onSignOut = onSignOut)
+            2 -> LeaderboardScreen()
+            3 -> UserProfileScreen(
+                onSignOut = onSignOut
+            )
         }
     }
 }

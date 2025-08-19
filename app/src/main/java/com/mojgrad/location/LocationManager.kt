@@ -40,7 +40,10 @@ class LocationManager private constructor(private val context: Context) {
         
         fun getInstance(context: Context): LocationManager {
             return INSTANCE ?: synchronized(this) {
-                INSTANCE ?: LocationManager(context.applicationContext).also { INSTANCE = it }
+                INSTANCE ?: LocationManager(context.applicationContext).also { 
+                    INSTANCE = it
+                    println("DEBUG: LocationManager - Creating new singleton instance")
+                }
             }
         }
     }
@@ -100,9 +103,16 @@ class LocationManager private constructor(private val context: Context) {
             override fun onLocationResult(locationResult: LocationResult) {
                 locationResult.lastLocation?.let { location ->
                     val latLng = LatLng(location.latitude, location.longitude)
+                    
+                    println("DEBUG: Location updated - ${location.latitude}, ${location.longitude}")
+                    println("DEBUG: LocationManager - About to emit to ${_currentLocation.subscriptionCount.value} subscribers")
+                    
+                    // Eksplicitno emit na flow
                     _currentLocation.value = latLng
                     _isLocationAvailable.value = true
-                    println("DEBUG: Location updated - ${location.latitude}, ${location.longitude}")
+                    
+                    println("DEBUG: LocationManager - Location emitted successfully")
+                    println("DEBUG: LocationManager - currentLocation flow has ${_currentLocation.subscriptionCount.value} subscribers")
                     
                     // Ažuriraj lokaciju korisnika u Firestore svakih 30 sekundi
                     updateUserLocationInFirestore(latLng)

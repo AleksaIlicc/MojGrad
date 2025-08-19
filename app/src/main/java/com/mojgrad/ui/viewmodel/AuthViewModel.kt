@@ -4,7 +4,6 @@ import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseUser
 import com.mojgrad.data.model.AuthResult
 import com.mojgrad.data.model.User
 import com.mojgrad.data.repository.AuthRepository

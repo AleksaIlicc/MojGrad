@@ -5,15 +5,17 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.mojgrad.manager.ProximityManager
 import com.mojgrad.ui.viewmodel.UserProfileViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -27,6 +29,10 @@ fun UserProfileScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    
+    val context = LocalContext.current
+    val proximityManager = remember { ProximityManager.getInstance(context) }
+    var isProximityMonitoringEnabled by remember { mutableStateOf(proximityManager.isMonitoringActive()) }
     
     var showSignOutDialog by remember { mutableStateOf(false) }
     
@@ -189,6 +195,60 @@ fun UserProfileScreen(
                                 text = "Ovaj mesec",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                
+                // Proximity monitoring settings
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Notifications,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "Obaveštenja o blizini",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = "Prikaži notifikacije kad sam blizu prijavljenih problema",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = isProximityMonitoringEnabled,
+                                onCheckedChange = { enabled ->
+                                    if (enabled) {
+                                        val success = proximityManager.startProximityMonitoring()
+                                        if (success) {
+                                            isProximityMonitoringEnabled = true
+                                        }
+                                    } else {
+                                        proximityManager.stopProximityMonitoring()
+                                        isProximityMonitoringEnabled = false
+                                    }
+                                }
                             )
                         }
                     }

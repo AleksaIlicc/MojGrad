@@ -3,10 +3,7 @@ package com.mojgrad.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import com.google.android.gms.maps.model.LatLng
-import com.google.firebase.firestore.FirebaseFirestore
-import com.mojgrad.data.model.Problem
 import com.mojgrad.location.LocationManager
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {

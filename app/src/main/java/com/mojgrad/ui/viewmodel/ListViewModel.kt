@@ -5,9 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.firebase.geofire.GeoFireUtils
 import com.firebase.geofire.GeoLocation
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.Query
 import com.mojgrad.data.model.Problem
 import com.mojgrad.data.model.Vote
 import kotlinx.coroutines.flow.MutableStateFlow

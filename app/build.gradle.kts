@@ -73,6 +73,8 @@ dependencies {
     implementation(libs.firebase.firestore)
     // GeoFire dependency for geohash queries
     implementation("com.firebase:geofire-android-common:3.2.0")
+    // Coroutines for Firebase Tasks
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
     // Other dependencies
     implementation(libs.coil.compose)
     testImplementation(libs.junit)
