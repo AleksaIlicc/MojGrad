@@ -10,58 +10,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class MapViewModel(application: Application) : AndroidViewModel(application) {
-    private val _problems = MutableStateFlow<List<Problem>>(emptyList())
-    val problems: StateFlow<List<Problem>> = _problems
-    
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
-    
     private val locationManager = LocationManager.getInstance(application)
     
-    // Expose location states from LocationManager
+    // Expose location states from LocationManager - MapViewModel je zadužen samo za lokaciju
     val currentLocation: StateFlow<LatLng?> = locationManager.currentLocation
     val isLocationAvailable: StateFlow<Boolean> = locationManager.isLocationAvailable
     val locationPermissionGranted: StateFlow<Boolean> = locationManager.locationPermissionGranted
 
-    init {
-        fetchProblems()
-    }
-    
     fun requestLocationPermissions(): Array<String> {
         return locationManager.requestPermissions()
     }
     
     fun onLocationPermissionsGranted() {
         locationManager.onPermissionsGranted()
-    }
-
-    private fun fetchProblems() {
-        _isLoading.value = true
-        val db = FirebaseFirestore.getInstance()
-        
-        // Koristimo addSnapshotListener za real-time updates
-        db.collection("problems")
-            .whereEqualTo("status", "PRIJAVLJENO") // Prikazuj samo aktivne probleme
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) {
-                    println("DEBUG: Error listening to problems: ${e.message}")
-                    _isLoading.value = false
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    val problemList = snapshot.documents.map { document ->
-                        document.toObject(Problem::class.java)?.copy(id = document.id)
-                    }.filterNotNull()
-                    
-                    _problems.value = problemList
-                    _isLoading.value = false
-                    println("DEBUG: Real-time update - Loaded ${problemList.size} problems from Firestore")
-                } else {
-                    println("DEBUG: No data")
-                    _isLoading.value = false
-                }
-            }
     }
     
     override fun onCleared() {

@@ -9,6 +9,7 @@ data class Problem(
     val description: String = "",
     val category: String = "",
     val location: GeoPoint? = null,
+    val geohash: String = "", // Geohash za efikasno geo filtriranje
     val userId: String = "",
     val authorName: String = "", // Ime i prezime autora
     val votes: Int = 0,

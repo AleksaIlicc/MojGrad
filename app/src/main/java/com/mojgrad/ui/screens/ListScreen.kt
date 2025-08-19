@@ -308,13 +308,16 @@ fun ProblemListItem(
 @Composable
 fun FilterDialog(
     viewModel: ListViewModel,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    showSorting: Boolean = true
 ) {
     val selectedCategory by viewModel.selectedCategory.collectAsState()
     val selectedAuthor by viewModel.selectedAuthor.collectAsState()
     val selectedStatus by viewModel.selectedStatus.collectAsState()
     val sortBy by viewModel.sortBy.collectAsState()
     val dateRange by viewModel.dateRange.collectAsState()
+    val radiusKm by viewModel.radiusKm.collectAsState()
+    val userLocation by viewModel.userLocation.collectAsState()
     
     // Local state for temporary changes
     var tempCategory by remember { mutableStateOf(selectedCategory) }
@@ -323,6 +326,8 @@ fun FilterDialog(
     var tempSortBy by remember { mutableStateOf(sortBy) }
     var tempStartDate by remember { mutableStateOf(dateRange.first) }
     var tempEndDate by remember { mutableStateOf(dateRange.second) }
+    var tempRadiusKm by remember { mutableStateOf(radiusKm?.toString() ?: "") }
+    var tempCenterLocation by remember { mutableStateOf(userLocation) }
     
     // Dropdown states
     var categoryExpanded by remember { mutableStateOf(false) }
@@ -352,15 +357,18 @@ fun FilterDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Filteri i sortiranje")
+                Text(if (showSorting) "Filteri i sortiranje" else "Filteri")
                 TextButton(
                     onClick = {
                         tempCategory = null
                         tempAuthor = null
                         tempStatus = "PRIJAVLJENO"
-                        tempSortBy = "newest"
+                        if (showSorting) {
+                            tempSortBy = "newest"
+                        }
                         tempStartDate = null
                         tempEndDate = null
+                        tempRadiusKm = ""
                     }
                 ) {
                     Text("Poništi sve", style = MaterialTheme.typography.labelMedium)
@@ -462,32 +470,34 @@ fun FilterDialog(
                     }
                 }
                 
-                // Sort By
-                ExposedDropdownMenuBox(
-                    expanded = sortExpanded,
-                    onExpandedChange = { sortExpanded = !sortExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = sortOptions.find { it.first == tempSortBy }?.second ?: "Najnoviji",
-                        onValueChange = { },
-                        readOnly = true,
-                        label = { Text("Sortiranje") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor()
-                    )
-                    ExposedDropdownMenu(
+                // Sort By - only show if showSorting is true
+                if (showSorting) {
+                    ExposedDropdownMenuBox(
                         expanded = sortExpanded,
-                        onDismissRequest = { sortExpanded = false }
+                        onExpandedChange = { sortExpanded = !sortExpanded }
                     ) {
-                        sortOptions.forEach { (key, label) ->
-                            DropdownMenuItem(
-                                text = { Text(label) },
-                                onClick = {
-                                    tempSortBy = key
-                                    sortExpanded = false
-                                }
-                            )
+                        OutlinedTextField(
+                            value = sortOptions.find { it.first == tempSortBy }?.second ?: "Najnoviji",
+                            onValueChange = { },
+                            readOnly = true,
+                            label = { Text("Sortiranje") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = sortExpanded,
+                            onDismissRequest = { sortExpanded = false }
+                        ) {
+                            sortOptions.forEach { (key, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        tempSortBy = key
+                                        sortExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -560,6 +570,37 @@ fun FilterDialog(
                         }
                     }
                 }
+                
+                // Radius Filter Section
+                Text(
+                    text = "Filter po radijusu",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Medium
+                )
+                
+                // Location status info
+                if (userLocation == null) {
+                    Text(
+                        text = "Potrebno je odobriti pristup lokaciji za radius pretragu",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+                
+                OutlinedTextField(
+                    value = tempRadiusKm,
+                    onValueChange = { newValue ->
+                        // Samo brojevi i decimalne tačke
+                        if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
+                            tempRadiusKm = newValue
+                        }
+                    },
+                    label = { Text("Radius (km)") },
+                    placeholder = { Text("npr. 5.0") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    enabled = userLocation != null
+                )
             }
         },
         confirmButton = {
@@ -569,8 +610,16 @@ fun FilterDialog(
                     viewModel.updateCategoryFilter(tempCategory)
                     viewModel.updateAuthorFilter(tempAuthor)
                     viewModel.updateStatusFilter(tempStatus)
-                    viewModel.updateSortBy(tempSortBy)
+                    if (showSorting) {
+                        viewModel.updateSortBy(tempSortBy)
+                    }
                     viewModel.updateDateRange(tempStartDate, tempEndDate)
+                    
+                    // Apply radius filter
+                    val radiusKm = tempRadiusKm.toDoubleOrNull()
+                    println("DEBUG: FilterDialog - Apply button clicked, radiusKm=$radiusKm")
+                    viewModel.updateRadiusFilter(radiusKm)
+                    
                     onDismiss()
                 }
             ) {

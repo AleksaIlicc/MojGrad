@@ -2,6 +2,8 @@ package com.mojgrad.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.firebase.geofire.GeoFireUtils
+import com.firebase.geofire.GeoLocation
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -48,6 +50,14 @@ class ListViewModel : ViewModel() {
     private val _dateRange = MutableStateFlow<Pair<Long?, Long?>>(null to null)
     val dateRange: StateFlow<Pair<Long?, Long?>> = _dateRange
     
+    // Radius filtering state
+    private val _radiusKm = MutableStateFlow<Double?>(null) // Radius u kilometrima
+    val radiusKm: StateFlow<Double?> = _radiusKm
+    
+    // Lokacija dolazi od MapViewModel-a
+    private val _userLocation = MutableStateFlow<Pair<Double, Double>?>(null) // lat, lng
+    val userLocation: StateFlow<Pair<Double, Double>?> = _userLocation
+    
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
@@ -56,6 +66,17 @@ class ListViewModel : ViewModel() {
         fetchUserVotes()
         // Apply filters whenever any filter changes
         observeFilters()
+    }
+    
+    // Metoda za postavljanje lokacije korisnika od MapViewModel-a
+    fun updateUserLocation(lat: Double?, lng: Double?) {
+        _userLocation.value = if (lat != null && lng != null) {
+            println("DEBUG: ListViewModel - User location updated: lat=$lat, lng=$lng")
+            lat to lng
+        } else {
+            println("DEBUG: ListViewModel - User location cleared (lat=$lat, lng=$lng)")
+            null
+        }
     }
     
     private fun observeFilters() {
@@ -67,7 +88,9 @@ class ListViewModel : ViewModel() {
                 _selectedAuthor,
                 _selectedStatus,
                 _sortBy,
-                _dateRange
+                _dateRange,
+                _radiusKm,
+                _userLocation
             ) { flows ->
                 val allProblems = flows[0] as List<Problem>
                 val searchQuery = flows[1] as String
@@ -76,9 +99,12 @@ class ListViewModel : ViewModel() {
                 val status = flows[4] as String
                 val sortBy = flows[5] as String
                 val dateRange = flows[6] as Pair<Long?, Long?>
+                val radiusKm = flows[7] as Double?
+                val userLocation = flows[8] as Pair<Double, Double>?
                 
-                applyFilters(allProblems, searchQuery, category, author, status, sortBy, dateRange)
+                applyFilters(allProblems, searchQuery, category, author, status, sortBy, dateRange, radiusKm, userLocation)
             }.collect { filteredProblems ->
+                println("DEBUG: ListViewModel - observeFilters collected ${filteredProblems.size} filtered problems")
                 _problems.value = filteredProblems
             }
         }
@@ -152,54 +178,110 @@ class ListViewModel : ViewModel() {
         author: String?,
         status: String,
         sortBy: String,
-        dateRange: Pair<Long?, Long?>
+        dateRange: Pair<Long?, Long?>,
+        radiusKm: Double?,
+        userLocation: Pair<Double, Double>?
     ): List<Problem> {
-        return allProblems
-            .filter { problem ->
-                // Status filter
-                problem.status == status
+        println("DEBUG: ListViewModel - applyFilters called:")
+        println("  - Total problems: ${allProblems.size}")
+        println("  - Search query: '$searchQuery'")
+        println("  - Category: $category")
+        println("  - Author: $author")
+        println("  - Status: $status")
+        println("  - Sort by: $sortBy")
+        println("  - Date range: ${dateRange.first} to ${dateRange.second}")
+        println("  - Radius km: $radiusKm")
+        println("  - User location: $userLocation")
+        
+        val afterStatusFilter = allProblems.filter { problem ->
+            // Status filter
+            problem.status == status
+        }
+        println("DEBUG: After status filter ($status): ${afterStatusFilter.size} problems")
+        
+        val afterSearchFilter = afterStatusFilter.filter { problem ->
+            // Search filter (description and category)
+            if (searchQuery.isBlank()) true
+            else {
+                problem.description.contains(searchQuery, ignoreCase = true) ||
+                problem.category.contains(searchQuery, ignoreCase = true)
             }
-            .filter { problem ->
-                // Search filter (description and category)
-                if (searchQuery.isBlank()) true
-                else {
-                    problem.description.contains(searchQuery, ignoreCase = true) ||
-                    problem.category.contains(searchQuery, ignoreCase = true)
-                }
+        }
+        println("DEBUG: After search filter ('$searchQuery'): ${afterSearchFilter.size} problems")
+        
+        val afterCategoryFilter = afterSearchFilter.filter { problem ->
+            // Category filter
+            category == null || problem.category == category
+        }
+        println("DEBUG: After category filter ($category): ${afterCategoryFilter.size} problems")
+        
+        val afterAuthorFilter = afterCategoryFilter.filter { problem ->
+            // Author filter
+            author == null || problem.authorName == author
+        }
+        println("DEBUG: After author filter ($author): ${afterAuthorFilter.size} problems")
+        
+        val afterDateFilter = afterAuthorFilter.filter { problem ->
+            // Date range filter
+            val (startDate, endDate) = dateRange
+            if (startDate == null && endDate == null) return@filter true
+            
+            val problemTime = problem.timestamp?.time ?: return@filter false
+            
+            val afterStart = startDate?.let { problemTime >= it } ?: true
+            val beforeEnd = endDate?.let { problemTime <= it } ?: true
+            
+            afterStart && beforeEnd
+        }
+        println("DEBUG: After date filter: ${afterDateFilter.size} problems")
+        
+        val afterRadiusFilter = afterDateFilter.filter { problem ->
+            // Radius filter using GeoFire
+            if (radiusKm == null || userLocation == null || problem.location == null) {
+                println("DEBUG: Radius filter skipped - radiusKm=$radiusKm, userLocation=$userLocation, problem.location=${problem.location}")
+                return@filter true // Ne filtriramo ako nema radius ili lokacije
             }
-            .filter { problem ->
-                // Category filter
-                category?.let { problem.category == it } ?: true
+            
+            println("DEBUG: Raw coordinates:")
+            println("  - User: lat=${userLocation.first}, lng=${userLocation.second}")
+            println("  - Problem: lat=${problem.location!!.latitude}, lng=${problem.location!!.longitude}")
+            
+            val problemLocation = GeoLocation(
+                problem.location!!.latitude,
+                problem.location!!.longitude
+            )
+            val center = GeoLocation(userLocation.first, userLocation.second)
+            
+            println("DEBUG: GeoLocation objects:")
+            println("  - User GeoLocation: lat=${center.latitude}, lng=${center.longitude}")
+            println("  - Problem GeoLocation: lat=${problemLocation.latitude}, lng=${problemLocation.longitude}")
+            
+            // Izračunaj rastojanje - GeoFire vraća METRE, konvertuj u kilometre
+            val distanceMeters = GeoFireUtils.getDistanceBetween(problemLocation, center)
+            val distanceKm = distanceMeters / 1000.0 // konvertuj m → km
+            
+            val isWithinRadius = distanceKm <= radiusKm
+            
+            println("DEBUG: Problem '${problem.description.take(30)}...' at (${problem.location!!.latitude}, ${problem.location!!.longitude})")
+            println("  - GeoFire distance (meters): ${String.format("%.2f", distanceMeters)} m")
+            println("  - GeoFire distance (km): ${String.format("%.2f", distanceKm)} km")
+            println("  - Radius limit: $radiusKm km")
+            println("  - Within radius: $isWithinRadius")
+            
+            isWithinRadius
+        }
+        println("DEBUG: After radius filter ($radiusKm km): ${afterRadiusFilter.size} problems")
+        
+        return afterRadiusFilter.let { filteredList ->
+            // Sort
+            when (sortBy) {
+                "votes" -> filteredList.sortedByDescending { it.votes }
+                "newest" -> filteredList.sortedByDescending { it.timestamp }
+                else -> filteredList.sortedByDescending { it.timestamp }
             }
-            .filter { problem ->
-                // Author filter
-                author?.let { problem.authorName == it } ?: true
-            }
-            .filter { problem ->
-                // Date range filter
-                val (startDate, endDate) = dateRange
-                when {
-                    startDate != null && endDate != null && problem.timestamp != null -> {
-                        val problemTime = problem.timestamp!!.time
-                        problemTime >= startDate && problemTime <= endDate
-                    }
-                    startDate != null && problem.timestamp != null -> {
-                        problem.timestamp!!.time >= startDate
-                    }
-                    endDate != null && problem.timestamp != null -> {
-                        problem.timestamp!!.time <= endDate
-                    }
-                    else -> true
-                }
-            }
-            .let { filteredList ->
-                // Sort
-                when (sortBy) {
-                    "votes" -> filteredList.sortedByDescending { it.votes }
-                    "newest" -> filteredList.sortedByDescending { it.timestamp }
-                    else -> filteredList.sortedByDescending { it.timestamp }
-                }
-            }
+        }.also { finalList ->
+            println("DEBUG: Final filtered and sorted list: ${finalList.size} problems")
+        }
     }
     
     // Filter update functions
@@ -227,6 +309,11 @@ class ListViewModel : ViewModel() {
         _dateRange.value = startDate to endDate
     }
     
+    fun updateRadiusFilter(radiusKm: Double?) {
+        println("DEBUG: ListViewModel - Radius filter updated: radiusKm=$radiusKm")
+        _radiusKm.value = radiusKm
+    }
+    
     fun clearAllFilters() {
         _searchQuery.value = ""
         _selectedCategory.value = null
@@ -234,6 +321,7 @@ class ListViewModel : ViewModel() {
         _selectedStatus.value = "PRIJAVLJENO"
         _sortBy.value = "newest"
         _dateRange.value = null to null
+        _radiusKm.value = null
     }
     
     // Get unique values for filter options

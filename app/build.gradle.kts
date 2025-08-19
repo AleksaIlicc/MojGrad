@@ -71,6 +71,8 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.firestore)
+    // GeoFire dependency for geohash queries
+    implementation("com.firebase:geofire-android-common:3.2.0")
     // Other dependencies
     implementation(libs.coil.compose)
     testImplementation(libs.junit)

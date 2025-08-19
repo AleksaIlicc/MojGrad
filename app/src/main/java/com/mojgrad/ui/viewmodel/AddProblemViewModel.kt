@@ -3,6 +3,7 @@ package com.mojgrad.ui.viewmodel
 import android.app.Application
 import android.location.Location
 import androidx.lifecycle.AndroidViewModel
+import com.firebase.geofire.GeoFireUtils
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -66,10 +67,17 @@ class AddProblemViewModel(application: Application) : AndroidViewModel(applicati
             .addOnSuccessListener { userSnapshot ->
                 val authorName = userSnapshot.getString("name") ?: "Nepoznat korisnik"
                 
+                // Generiši geohash za lokaciju
+                val geoPoint = GeoPoint(location.latitude, location.longitude)
+                val geohash = GeoFireUtils.getGeoHashForLocation(
+                    com.firebase.geofire.GeoLocation(location.latitude, location.longitude)
+                )
+                
                 val problem = hashMapOf(
                     "description" to description,
                     "category" to category,
-                    "location" to GeoPoint(location.latitude, location.longitude),
+                    "location" to geoPoint,
+                    "geohash" to geohash,
                     "timestamp" to FieldValue.serverTimestamp(),
                     "userId" to currentUser.uid,
                     "authorName" to authorName,
