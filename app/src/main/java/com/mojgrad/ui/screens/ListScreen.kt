@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,18 +19,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mojgrad.data.model.Problem
-import com.mojgrad.ui.viewmodel.ListaViewModel
+import com.mojgrad.ui.viewmodel.ListViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ListaScreen(
-    viewModel: ListaViewModel = viewModel()
+fun ListScreen(
+    onMapClick: (Problem) -> Unit = {},
+    viewModel: ListViewModel = viewModel()
 ) {
     val problems by viewModel.problems.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val userVotes by viewModel.userVotes.collectAsState()
     
     Column(
         modifier = Modifier.fillMaxSize()
@@ -37,9 +40,46 @@ fun ListaScreen(
         // Top App Bar
         TopAppBar(
             title = {
-                Text("Lista Problema")
+                Text("Problemi")
             }
         )
+        
+        // Error message kao snackbar na vrhu
+        errorMessage?.let { error ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = error,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = { viewModel.clearError() },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Text(
+                            text = "×",
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
+                }
+            }
+        }
         
         if (isLoading) {
             Box(
@@ -52,37 +92,6 @@ fun ListaScreen(
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(16.dp))
                     Text("Učitavam probleme...")
-                }
-            }
-        } else if (errorMessage != null) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Greška",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = errorMessage!!,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            textAlign = TextAlign.Center
-                        )
-                    }
                 }
             }
         } else if (problems.isEmpty()) {
@@ -118,7 +127,12 @@ fun ListaScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(problems) { problem ->
-                    ProblemListItem(problem = problem)
+                    ProblemListItem(
+                        problem = problem,
+                        hasVoted = userVotes[problem.id] == true,
+                        onVoteClick = { viewModel.toggleVoteForProblem(problem) },
+                        onMapClick = { onMapClick(problem) }
+                    )
                 }
             }
         }
@@ -127,7 +141,10 @@ fun ListaScreen(
 
 @Composable
 fun ProblemListItem(
-    problem: Problem
+    problem: Problem,
+    hasVoted: Boolean,
+    onVoteClick: () -> Unit,
+    onMapClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -138,12 +155,21 @@ fun ProblemListItem(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header sa kategorijom i vremenom
+            // Header sa imenom autora (levo) i kategorijom (desno)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
+                // Ime autora
+                Text(
+                    text = problem.authorName.ifEmpty { "Nepoznat korisnik" },
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+                
                 // Kategorija
                 Surface(
                     shape = RoundedCornerShape(12.dp),
@@ -156,73 +182,79 @@ fun ProblemListItem(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
-                
-                // Status
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer
-                ) {
-                    Text(
-                        text = problem.status,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
+            
+            // Timestamp
+            if (problem.timestamp != null) {
+                val formatter = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
+                Text(
+                    text = formatter.format(problem.timestamp!!),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             
             // Opis problema
             Text(
                 text = problem.description,
                 style = MaterialTheme.typography.bodyLarge,
-                maxLines = 3,
+                maxLines = 4,
                 overflow = TextOverflow.Ellipsis
             )
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Footer sa glasovima i lokacijom
+            // Footer sa glasovima i akcijama
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Glasovi
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
+                // Vote dugme
+                OutlinedButton(
+                    onClick = onVoteClick,
+                    modifier = Modifier.height(36.dp),
+                    colors = if (hasVoted) {
+                        ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    } else {
+                        ButtonDefaults.outlinedButtonColors()
+                    }
                 ) {
                     Icon(
                         Icons.Default.ThumbUp,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        tint = if (hasVoted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "${problem.votes} glasova",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "${problem.votes}",
+                        style = MaterialTheme.typography.bodySmall
                     )
                 }
                 
-                // Lokacija (ako postoji)
+                // Map dugme
                 if (problem.location != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
+                    OutlinedButton(
+                        onClick = onMapClick,
+                        modifier = Modifier.height(36.dp)
                     ) {
                         Icon(
-                            Icons.Default.LocationOn,
+                            Icons.Default.Place,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.secondary
+                            tint = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Lokacija",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }

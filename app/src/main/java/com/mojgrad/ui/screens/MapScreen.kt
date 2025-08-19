@@ -53,7 +53,8 @@ import com.mojgrad.ui.viewmodel.MapViewModel
 fun MapScreen(
     modifier: Modifier = Modifier,
     mapViewModel: MapViewModel = viewModel(),
-    rootNavController: NavHostController
+    rootNavController: NavHostController,
+    targetLocation: LatLng? = null // Nova lokacija na koju treba da se fokusira
 ) {
     val problems by mapViewModel.problems.collectAsState()
     val currentLocation by mapViewModel.currentLocation.collectAsState()
@@ -76,17 +77,27 @@ fun MapScreen(
         }
     }
     
-    // Stanje za kameru mape - koristi korisničku lokaciju ako je dostupna
-    val initialLocation = currentLocation ?: LatLng(44.787197, 20.457273) // Beograd kao fallback
+    // Stanje za kameru mape - koristi target lokaciju ili korisničku lokaciju ako je dostupna
+    val initialLocation = targetLocation ?: currentLocation ?: LatLng(44.787197, 20.457273) // Target > User location > Beograd fallback
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(initialLocation, 15f)
     }
     
-    // Ažuriranje kamere kada se lokacija promeni
+    // Ažuriranje kamere kada se lokacija promeni (samo ako nema target lokacije)
     LaunchedEffect(currentLocation) {
-        currentLocation?.let { location ->
-            cameraPositionState.position = CameraPosition.fromLatLngZoom(location, 15f)
-            println("DEBUG: Camera moved to user location: $location")
+        if (targetLocation == null) {
+            currentLocation?.let { location ->
+                cameraPositionState.position = CameraPosition.fromLatLngZoom(location, 15f)
+                println("DEBUG: Camera moved to user location: $location")
+            }
+        }
+    }
+    
+    // Fokusiranje na target lokaciju (ima prioritet nad korisničkom lokacijom)
+    LaunchedEffect(targetLocation) {
+        targetLocation?.let { location ->
+            cameraPositionState.position = CameraPosition.fromLatLngZoom(location, 16f) // Malo veći zoom za target
+            println("DEBUG: Camera focused on target location: $location")
         }
     }
     

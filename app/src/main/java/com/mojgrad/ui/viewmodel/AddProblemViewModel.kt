@@ -60,48 +60,60 @@ class AddProblemViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
 
-        val problem = hashMapOf(
-            "description" to description,
-            "category" to category,
-            "location" to GeoPoint(location.latitude, location.longitude),
-            "timestamp" to FieldValue.serverTimestamp(),
-            "userId" to currentUser.uid,
-            "status" to "PRIJAVLJENO", // Eksplicitno postavljamo status na "PRIJAVLJENO"
-            "votes" to 0 // Početna vrednost glasova
-        )
+        // Prvo učitava korisničko ime
+        firestore.collection("users").document(currentUser.uid)
+            .get()
+            .addOnSuccessListener { userSnapshot ->
+                val authorName = userSnapshot.getString("name") ?: "Nepoznat korisnik"
+                
+                val problem = hashMapOf(
+                    "description" to description,
+                    "category" to category,
+                    "location" to GeoPoint(location.latitude, location.longitude),
+                    "timestamp" to FieldValue.serverTimestamp(),
+                    "userId" to currentUser.uid,
+                    "authorName" to authorName,
+                    "status" to "PRIJAVLJENO", // Eksplicitno postavljamo status na "PRIJAVLJENO"
+                    "votes" to 0 // Početna vrednost glasova
+                )
 
-        firestore.collection("problems")
-            .add(problem)
-            .addOnSuccessListener { documentReference ->
-                println("DEBUG: Problem uspešno dodat u Firestore sa ID: ${documentReference.id}")
-                
-                // Dodeli poene korisniku za kreiranje problema (10 poena)
-                val currentMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
-                val userRef = firestore.collection("users").document(currentUser.uid)
-                
-                firestore.runTransaction { transaction ->
-                    val userSnapshot = transaction.get(userRef)
-                    val currentTotalPoints = userSnapshot.getLong("totalPoints") ?: 0L
-                    val monthlyPointsMap = userSnapshot.get("monthlyPoints") as? Map<String, Long> ?: emptyMap()
-                    val currentMonthPoints = monthlyPointsMap[currentMonth] ?: 0L
-                    
-                    val updatedMonthlyPoints = monthlyPointsMap.toMutableMap()
-                    updatedMonthlyPoints[currentMonth] = currentMonthPoints + 10
-                    
-                    transaction.update(userRef, mapOf(
-                        "totalPoints" to currentTotalPoints + 10,
-                        "monthlyPoints" to updatedMonthlyPoints
-                    ))
-                }.addOnSuccessListener {
-                    println("DEBUG: Uspešno dodeljeno 10 poena korisniku za kreiranje problema")
-                }.addOnFailureListener { e ->
-                    println("DEBUG: Greška pri dodeli poena: ${e.message}")
-                }
-                
-                _uploadState.value = UploadState.SUCCESS
+                firestore.collection("problems")
+                    .add(problem)
+                    .addOnSuccessListener { documentReference ->
+                        println("DEBUG: Problem uspešno dodat u Firestore sa ID: ${documentReference.id}")
+                        
+                        // Dodeli poene korisniku za kreiranje problema (10 poena)
+                        val currentMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
+                        val userRef = firestore.collection("users").document(currentUser.uid)
+                        
+                        firestore.runTransaction { transaction ->
+                            val userSnapshot = transaction.get(userRef)
+                            val currentTotalPoints = userSnapshot.getLong("totalPoints") ?: 0L
+                            val monthlyPointsMap = userSnapshot.get("monthlyPoints") as? Map<String, Long> ?: emptyMap()
+                            val currentMonthPoints = monthlyPointsMap[currentMonth] ?: 0L
+                            
+                            val updatedMonthlyPoints = monthlyPointsMap.toMutableMap()
+                            updatedMonthlyPoints[currentMonth] = currentMonthPoints + 10
+                            
+                            transaction.update(userRef, mapOf(
+                                "totalPoints" to currentTotalPoints + 10,
+                                "monthlyPoints" to updatedMonthlyPoints
+                            ))
+                        }.addOnSuccessListener {
+                            println("DEBUG: Uspešno dodeljeno 10 poena korisniku za kreiranje problema")
+                        }.addOnFailureListener { e ->
+                            println("DEBUG: Greška pri dodeli poena: ${e.message}")
+                        }
+                        
+                        _uploadState.value = UploadState.SUCCESS
+                    }
+                    .addOnFailureListener { e ->
+                        println("DEBUG: Greška pri dodavanju problema: ${e.message}")
+                        _uploadState.value = UploadState.ERROR
+                    }
             }
             .addOnFailureListener { e ->
-                println("DEBUG: Greška pri dodavanju problema: ${e.message}")
+                println("DEBUG: Greška pri učitavanju korisničkih podataka: ${e.message}")
                 _uploadState.value = UploadState.ERROR
             }
     }

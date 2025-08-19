@@ -14,10 +14,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import com.google.android.gms.maps.model.LatLng
 
 @Composable
 fun MainScreen(
@@ -25,6 +27,7 @@ fun MainScreen(
     onSignOut: () -> Unit = {}
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
+    var targetLocation by remember { mutableStateOf<LatLng?>(null) }
     
     val tabs = listOf(
         Triple("Mapa", Icons.Default.LocationOn, "mapa"),
@@ -41,7 +44,13 @@ fun MainScreen(
                         icon = { Icon(icon, contentDescription = title) },
                         label = { Text(title) },
                         selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index }
+                        onClick = { 
+                            selectedTabIndex = index
+                            // Reset target location when navigating to map tab directly
+                            if (index == 0) {
+                                targetLocation = null
+                            }
+                        }
                     )
                 }
             }
@@ -50,9 +59,18 @@ fun MainScreen(
         when (selectedTabIndex) {
             0 -> MapScreen(
                 modifier = Modifier.padding(innerPadding),
-                rootNavController = rootNavController
+                rootNavController = rootNavController,
+                targetLocation = targetLocation
             )
-            1 -> ListaScreen()
+            1 -> ListScreen(
+                onMapClick = { problem ->
+                    // Navigate to map and show specific problem
+                    problem.location?.let { geoPoint ->
+                        targetLocation = LatLng(geoPoint.latitude, geoPoint.longitude)
+                        selectedTabIndex = 0
+                    }
+                }
+            )
             2 -> LeaderboardScreen() // Direktno koristi LeaderboardScreen
             3 -> UserProfileScreen(onSignOut = onSignOut)
         }

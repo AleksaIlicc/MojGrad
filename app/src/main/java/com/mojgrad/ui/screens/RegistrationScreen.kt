@@ -19,7 +19,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mojgrad.ui.theme.MojGradTheme
@@ -289,15 +288,3 @@ fun RegistrationScreen(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun RegistrationScreenPreview() {
-    MojGradTheme {
-        RegistrationScreen(
-            uiState = AuthUiState(),
-            onRegisterClick = { _, _, _, _, _ -> },
-            onNavigateToLogin = { },
-            onClearError = { }
-        )
-    }
-}
