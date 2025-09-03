@@ -44,16 +44,16 @@ fun AddProblemScreen(
     val context = LocalContext.current
     val imageUploadService = remember { ImageUploadService(context) }
     val scope = rememberCoroutineScope()
-    
-    // Kategorije problema
+
+
     val categories = listOf("Saobraćaj", "Čistoća", "Infrastruktura", "Bezbednost", "Ostalo")
 
-    // Resetuj stanje kada se ekran učita
+
     LaunchedEffect(Unit) {
         viewModel.resetState()
     }
 
-    // Reagovanje na uspešan upload
+
     LaunchedEffect(uploadState) {
         if (uploadState == AddProblemViewModel.UploadState.SUCCESS) {
             onProblemAdded()
@@ -67,7 +67,7 @@ fun AddProblemScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Header
+
         Text(
             text = "Prijavi Problem",
             fontSize = 24.sp,
@@ -75,7 +75,7 @@ fun AddProblemScreen(
             color = MaterialTheme.colorScheme.primary
         )
 
-        // Opis problema
+
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
@@ -86,7 +86,7 @@ fun AddProblemScreen(
             maxLines = 5
         )
 
-        // Dropdown za kategoriju
+
         ExposedDropdownMenuBox(
             expanded = isDropdownExpanded,
             onExpandedChange = { isDropdownExpanded = !isDropdownExpanded }
@@ -103,7 +103,7 @@ fun AddProblemScreen(
                     .fillMaxWidth()
                     .menuAnchor()
             )
-            
+
             ExposedDropdownMenu(
                 expanded = isDropdownExpanded,
                 onDismissRequest = { isDropdownExpanded = false }
@@ -120,14 +120,14 @@ fun AddProblemScreen(
             }
         }
 
-        // Image picker section
+
         Text(
             text = "Dodaj sliku (opciono)",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(top = 8.dp)
         )
-        
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -151,8 +151,8 @@ fun AddProblemScreen(
                             .clip(RoundedCornerShape(8.dp)),
                         contentScale = ContentScale.Fit
                     )
-                    
-                    // Upload progress indicator
+
+
                     if (isUploadingImage) {
                         Box(
                             modifier = Modifier
@@ -186,7 +186,7 @@ fun AddProblemScreen(
             }
         }
 
-        // Error message display
+
         uploadError?.let { error ->
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -215,14 +215,14 @@ fun AddProblemScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Dugme za slanje
+
         Button(
             onClick = {
                 scope.launch {
                     if (selectedImageUri != null) {
                         isUploadingImage = true
                         uploadError = null
-                        
+
                         try {
                             val result = imageUploadService.uploadImage(selectedImageUri!!)
                             result.fold(
@@ -241,7 +241,7 @@ fun AddProblemScreen(
                     }
                 }
             },
-            enabled = description.isNotBlank() && 
+            enabled = description.isNotBlank() &&
                      uploadState != AddProblemViewModel.UploadState.UPLOADING &&
                      !isUploadingImage,
             modifier = Modifier.fillMaxWidth()
@@ -258,7 +258,7 @@ fun AddProblemScreen(
             }
         }
 
-        // Prikaz greške
+
         if (uploadState == AddProblemViewModel.UploadState.ERROR) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -274,8 +274,8 @@ fun AddProblemScreen(
             }
         }
     }
-    
-    // Image Picker Dialog
+
+
     ImagePickerDialog(
         showDialog = showImagePicker,
         onDismiss = { showImagePicker = false },

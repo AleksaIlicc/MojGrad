@@ -28,17 +28,17 @@ fun LeaderboardScreen(
     val users by viewModel.users.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Top App Bar
+
         TopAppBar(
             title = {
                 Text("Rang Lista")
             }
         )
-        
+
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -82,7 +82,7 @@ fun LeaderboardScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(
-                            onClick = { /* Ne treba refresh jer je realtime */ }
+                            onClick = {  }
                         ) {
                             Text("Osveži se automatski")
                         }
@@ -136,7 +136,7 @@ fun UserRankCard(
         SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
     }
     val monthlyPoints = user.monthlyPoints[currentMonth] ?: 0
-    
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -147,7 +147,7 @@ fun UserRankCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Jednostavan avatar placeholder
+
             Card(
                 modifier = Modifier.size(48.dp),
                 shape = CircleShape,
@@ -167,20 +167,20 @@ fun UserRankCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
-            // Rang broj
+
+
             Text(
                 text = "#$rank",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
-            // Ime korisnika
+
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -190,8 +190,8 @@ fun UserRankCard(
                     fontWeight = FontWeight.Medium
                 )
             }
-            
-            // Mesečni poeni
+
+
             Text(
                 text = "$monthlyPoints poena",
                 style = MaterialTheme.typography.titleMedium,

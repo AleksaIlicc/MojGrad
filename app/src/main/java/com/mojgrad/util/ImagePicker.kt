@@ -27,20 +27,20 @@ fun ImagePickerDialog(
 ) {
     val context = LocalContext.current
     var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
-    
+
     fun createImageFile(): Uri {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val imageFileName = "IMG_${timeStamp}.jpg"
         val storageDir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
         val photoFile = File(storageDir, imageFileName)
-        
+
         return FileProvider.getUriForFile(
             context,
             "com.filips.mojgrad.fileprovider",
             photoFile
         )
     }
-    
+
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -49,7 +49,7 @@ fun ImagePickerDialog(
         }
         onDismiss()
     }
-    
+
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -66,14 +66,14 @@ fun ImagePickerDialog(
             onDismiss()
         }
     }
-    
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let { onImageSelected(it) }
         onDismiss()
     }
-    
+
     if (showDialog) {
         AlertDialog(
             onDismissRequest = onDismiss,

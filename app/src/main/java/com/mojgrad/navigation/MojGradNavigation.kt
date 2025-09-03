@@ -18,7 +18,7 @@ import com.mojgrad.ui.screens.MainScreen
 import com.mojgrad.ui.screens.RegistrationScreen
 import com.mojgrad.ui.viewmodel.AuthViewModel
 
-// Konstante za rute
+
 object Routes {
     const val LOGIN = "login"
     const val REGISTER = "register"
@@ -34,15 +34,15 @@ fun MojGradNavigation(
 ) {
     val context = LocalContext.current
     val uiState by authViewModel.uiState.collectAsState()
-    
-    // Uvek počinjemo sa LOGIN kao startDestination
-    // jer ćemo LaunchedEffect da obradi navigaciju
+
+
+
     NavHost(
         navController = navController,
         startDestination = Routes.LOGIN,
         modifier = modifier
     ) {
-        // Login ekran
+
         composable(Routes.LOGIN) {
             LoginScreen(
                 uiState = uiState,
@@ -58,7 +58,7 @@ fun MojGradNavigation(
             )
         }
 
-        // Registration ekran
+
         composable(Routes.REGISTER) {
             RegistrationScreen(
                 uiState = uiState,
@@ -74,7 +74,7 @@ fun MojGradNavigation(
             )
         }
 
-        // Main ekran sa Bottom Navigation
+
         composable(Routes.MAIN) {
             MainScreen(
                 rootNavController = navController,
@@ -84,7 +84,7 @@ fun MojGradNavigation(
             )
         }
 
-        // Ekran za dodavanje problema
+
         composable(Routes.ADD_PROBLEM) {
             AddProblemScreen(
                 onProblemAdded = {
@@ -94,24 +94,24 @@ fun MojGradNavigation(
         }
     }
 
-    // Automatska navigacija na osnovu stanja autentifikacije
+
     LaunchedEffect(uiState.isLoggedIn) {
         val currentRoute = navController.currentDestination?.route
-        
+
         when {
             uiState.isLoggedIn && currentRoute != Routes.MAIN -> {
                 navController.navigate(Routes.MAIN) {
-                    // Obriši ceo back stack kada idemo na Main
+
                     popUpTo(navController.graph.startDestinationId) {
                         inclusive = true
                     }
-                    // Spreči multiple kopije Main ekrana
+
                     launchSingleTop = true
                 }
             }
             !uiState.isLoggedIn && currentRoute != Routes.LOGIN && currentRoute != Routes.REGISTER -> {
                 navController.navigate(Routes.LOGIN) {
-                    // Obriši ceo back stack kada idemo na Login
+
                     popUpTo(navController.graph.startDestinationId) {
                         inclusive = true
                     }

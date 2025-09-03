@@ -13,8 +13,8 @@ data class User(
     @ServerTimestamp
     val createdAt: Date? = null,
     val totalPoints: Long = 0L,
-    val monthlyPoints: Map<String, Long> = emptyMap(), 
+    val monthlyPoints: Map<String, Long> = emptyMap(),
     val lastLocation: GeoPoint? = null,
-    val lastLocationUpdate: Long = 0L, 
-    val admin: Boolean = false 
+    val lastLocationUpdate: Long = 0L,
+    val admin: Boolean = false
 )

@@ -32,9 +32,9 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
-    // Prikazuj grešku ako postoji
+
     LaunchedEffect(uiState.errorMessage) {
-        // Greška će biti prikazana u UI-u
+
     }
 
     Column(
@@ -44,7 +44,7 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Naslov
+
         Text(
             text = "MojGrad",
             fontSize = 32.sp,
@@ -52,7 +52,7 @@ fun LoginScreen(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
+
         Text(
             text = "Prijavite se na svoj nalog",
             fontSize = 16.sp,
@@ -61,7 +61,7 @@ fun LoginScreen(
             modifier = Modifier.padding(bottom = 32.dp)
         )
 
-        // Prikaz greške
+
         uiState.errorMessage?.let { error ->
             Card(
                 modifier = Modifier
@@ -90,7 +90,7 @@ fun LoginScreen(
             }
         }
 
-        // Email polje
+
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
@@ -110,7 +110,7 @@ fun LoginScreen(
                 .padding(bottom = 16.dp)
         )
 
-        // Lozinka polje
+
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
@@ -139,7 +139,7 @@ fun LoginScreen(
                 .padding(bottom = 24.dp)
         )
 
-        // Dugme za prijavu
+
         Button(
             onClick = { onLoginClick(email, password) },
             enabled = email.isNotBlank() && password.isNotBlank() && !uiState.isLoading,
@@ -163,7 +163,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Tekst za navigaciju ka registraciji
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(top = 16.dp)

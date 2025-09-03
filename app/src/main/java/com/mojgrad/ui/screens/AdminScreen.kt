@@ -53,8 +53,8 @@ fun AdminScreen(
 ) {
     val problems by listViewModel.problems.collectAsState()
     val isLoading by listViewModel.isLoading.collectAsState()
-    
-    // Sort problems by votes (highest first)
+
+
     val sortedProblems = problems.sortedByDescending { it.votes }
 
     Column(
@@ -104,8 +104,8 @@ fun AdminScreen(
                 items(sortedProblems) { problem ->
                     AdminProblemCard(
                         problem = problem,
-                        onStatusToggle = { 
-                            listViewModel.toggleProblemStatus(problem) 
+                        onStatusToggle = {
+                            listViewModel.toggleProblemStatus(problem)
                         }
                     )
                 }
@@ -128,13 +128,13 @@ fun AdminProblemCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header sa kategorijom i statusom
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                // Kategorija
+
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
@@ -146,8 +146,8 @@ fun AdminProblemCard(
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                 }
-                
-                // Status
+
+
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = if (problem.status == ProblemStatus.PRIJAVLJENO) {
@@ -168,36 +168,36 @@ fun AdminProblemCard(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
-            // Autor
+
+
             Text(
                 text = problem.authorName.ifEmpty { "Nepoznat korisnik" },
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Medium
             )
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
-            // Opis problema
+
+
             Text(
                 text = problem.description,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis
             )
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
-            // Footer sa glasovima i dugmetom
+
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Broj glasova
+
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.secondaryContainer
@@ -221,8 +221,8 @@ fun AdminProblemCard(
                         )
                     }
                 }
-                
-                // Toggle dugme
+
+
                 Button(
                     onClick = onStatusToggle,
                     colors = if (problem.status == ProblemStatus.PRIJAVLJENO) {

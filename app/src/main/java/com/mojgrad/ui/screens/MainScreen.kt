@@ -35,22 +35,22 @@ fun MainScreen(
 ) {
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     var targetLocation by remember { mutableStateOf<LatLng?>(null) }
-    
-    // Shared ViewModels for both Map and List screens
+
+
     val listViewModel: ListViewModel = viewModel()
     val mapViewModel: MapViewModel = viewModel()
     val authViewModel: AuthViewModel = viewModel()
-    
-    // Get current user for role-based navigation
+
+
     val authUiState by authViewModel.uiState.collectAsState()
     val currentUser = authUiState.currentUser
-    
-    // Debug log to check admin status
+
+
     LaunchedEffect(currentUser) {
         println("DEBUG: MainScreen - CurrentUser: ${currentUser?.name}, admin: ${currentUser?.admin}")
     }
-    
-    // Observe location from MapViewModel and update ListViewModel
+
+
     val currentLocation by mapViewModel.currentLocation.collectAsState()
     LaunchedEffect(currentLocation) {
         println("DEBUG: MainScreen - Location changed: $currentLocation")
@@ -59,16 +59,16 @@ fun MainScreen(
             currentLocation?.longitude
         )
     }
-    
-    // Admin users get a completely different interface - no navigation tabs
+
+
     if (currentUser?.admin == true) {
-        // Admin interface - just the admin screen without navigation
+
         AdminScreen(
             listViewModel = listViewModel,
             onSignOut = onSignOut
         )
     } else {
-        // Regular user interface with navigation tabs
+
         val tabs = listOf(
             Triple("Mapa", Icons.Default.LocationOn, "mapa"),
             Triple("Lista", Icons.Default.List, "lista"),
@@ -84,9 +84,9 @@ fun MainScreen(
                             icon = { Icon(icon, contentDescription = title) },
                             label = { Text(title) },
                             selected = selectedTabIndex == index,
-                            onClick = { 
+                            onClick = {
                                 selectedTabIndex = index
-                                // Reset target location when navigating to map tab directly
+
                                 if (index == 0) {
                                     targetLocation = null
                                 }
@@ -108,7 +108,7 @@ fun MainScreen(
                     viewModel = listViewModel,
                     currentUser = currentUser,
                     onMapClick = { problem ->
-                        // Navigate to map and show specific problem
+
                         problem.location?.let { geoPoint ->
                             targetLocation = LatLng(geoPoint.latitude, geoPoint.longitude)
                             selectedTabIndex = 0

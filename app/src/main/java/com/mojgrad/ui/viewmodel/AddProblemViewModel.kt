@@ -28,8 +28,8 @@ class AddProblemViewModel(application: Application) : AndroidViewModel(applicati
     fun addProblem(description: String, category: String, imageUrl: String? = null) {
         println("DEBUG: AddProblemViewModel - Starting to add problem")
         _uploadState.value = UploadState.UPLOADING
-        
-        // Pokušaj da dobiješ trenutnu lokaciju korisnika
+
+
         locationManager.getCurrentLocationOnce { currentLocation ->
             println("DEBUG: AddProblemViewModel - Location callback received: $currentLocation")
             val location = if (currentLocation != null) {
@@ -38,21 +38,21 @@ class AddProblemViewModel(application: Application) : AndroidViewModel(applicati
                     longitude = currentLocation.longitude
                 }
             } else {
-                // Fallback na Beograd centar ako lokacija nije dostupna
+
                 Location("default").apply {
                     latitude = 44.787197
                     longitude = 20.457273
                 }
             }
-            
+
             println("DEBUG: Creating problem at location: ${location.latitude}, ${location.longitude}")
             saveProblemToFirestore(description, category, location, imageUrl)
         }
     }
 
     private fun saveProblemToFirestore(
-        description: String, 
-        category: String, 
+        description: String,
+        category: String,
         location: Location,
         imageUrl: String? = null
     ) {
@@ -62,18 +62,18 @@ class AddProblemViewModel(application: Application) : AndroidViewModel(applicati
             return
         }
 
-        // Prvo učitava korisničko ime
+
         firestore.collection("users").document(currentUser.uid)
             .get()
             .addOnSuccessListener { userSnapshot ->
                 val authorName = userSnapshot.getString("name") ?: "Nepoznat korisnik"
-                
-                // Generiši geohash za lokaciju
+
+
                 val geoPoint = GeoPoint(location.latitude, location.longitude)
                 val geohash = GeoFireUtils.getGeoHashForLocation(
                     com.firebase.geofire.GeoLocation(location.latitude, location.longitude)
                 )
-                
+
                 val problem = hashMapOf(
                     "description" to description,
                     "category" to category,
@@ -82,29 +82,29 @@ class AddProblemViewModel(application: Application) : AndroidViewModel(applicati
                     "timestamp" to FieldValue.serverTimestamp(),
                     "userId" to currentUser.uid,
                     "authorName" to authorName,
-                    "status" to "PRIJAVLJENO", // Eksplicitno postavljamo status na "PRIJAVLJENO"
-                    "votes" to 0, // Početna vrednost glasova
-                    "imageUrl" to imageUrl // URL slike problema
+                    "status" to "PRIJAVLJENO",
+                    "votes" to 0,
+                    "imageUrl" to imageUrl
                 )
 
                 firestore.collection("problems")
                     .add(problem)
                     .addOnSuccessListener { documentReference ->
                         println("DEBUG: Problem uspešno dodat u Firestore sa ID: ${documentReference.id}")
-                        
-                        // Dodeli poene korisniku za kreiranje problema (10 poena)
+
+
                         val currentMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
                         val userRef = firestore.collection("users").document(currentUser.uid)
-                        
+
                         firestore.runTransaction { transaction ->
                             val userSnapshot = transaction.get(userRef)
                             val currentTotalPoints = userSnapshot.getLong("totalPoints") ?: 0L
                             val monthlyPointsMap = userSnapshot.get("monthlyPoints") as? Map<String, Long> ?: emptyMap()
                             val currentMonthPoints = monthlyPointsMap[currentMonth] ?: 0L
-                            
+
                             val updatedMonthlyPoints = monthlyPointsMap.toMutableMap()
                             updatedMonthlyPoints[currentMonth] = currentMonthPoints + 10
-                            
+
                             transaction.update(userRef, mapOf(
                                 "totalPoints" to currentTotalPoints + 10,
                                 "monthlyPoints" to updatedMonthlyPoints
@@ -114,7 +114,7 @@ class AddProblemViewModel(application: Application) : AndroidViewModel(applicati
                         }.addOnFailureListener { e ->
                             println("DEBUG: Greška pri dodeli poena: ${e.message}")
                         }
-                        
+
                         _uploadState.value = UploadState.SUCCESS
                     }
                     .addOnFailureListener { e ->

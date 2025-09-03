@@ -83,23 +83,16 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
-    // Navigation dependencies
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.runtime.ktx)
-    // Lifecycle dependencies
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    // Firebase dependencies
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.firestore)
-    // GeoFire dependency for geohash queries
     implementation("com.firebase:geofire-android-common:3.2.0")
-    // Coroutines for Firebase Tasks
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
-    // AWS SDK for Kotlin (supports EnableAwsChunked for R2 compatibility)
     implementation("aws.sdk.kotlin:s3:1.0.30")
     implementation("aws.sdk.kotlin:aws-core:1.0.30")
-    // Other dependencies
     implementation(libs.coil.compose)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

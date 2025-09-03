@@ -32,17 +32,17 @@ fun UserProfileScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
-    
+
     val context = LocalContext.current
     val proximityManager = remember { ProximityManager.getInstance(context) }
     var isProximityMonitoringEnabled by remember { mutableStateOf(proximityManager.isMonitoringActive()) }
-    
+
     var showSignOutDialog by remember { mutableStateOf(false) }
-    
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Top App Bar
+
         TopAppBar(
             title = {
                 Text("Moj Profil")
@@ -55,7 +55,7 @@ fun UserProfileScreen(
                 }
             }
         )
-        
+
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -107,7 +107,7 @@ fun UserProfileScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Avatar i osnovne informacije
+
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -117,7 +117,7 @@ fun UserProfileScreen(
                             .padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        // Avatar placeholder
+
                         Card(
                             modifier = Modifier.size(80.dp),
                             shape = CircleShape,
@@ -148,15 +148,15 @@ fun UserProfileScreen(
                                 }
                             }
                         }
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         Text(
                             text = currentUser!!.name.ifEmpty { "Nepoznato ime" },
                             style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Bold
                         )
-                        
+
                         Text(
                             text = currentUser!!.email,
                             style = MaterialTheme.typography.bodyLarge,
@@ -164,8 +164,8 @@ fun UserProfileScreen(
                         )
                     }
                 }
-                
-                // Statistike
+
+
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -175,7 +175,7 @@ fun UserProfileScreen(
                             .padding(24.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        // Ukupno poena
+
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -191,11 +191,11 @@ fun UserProfileScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        
-                        // Trenutni mesec poeni
+
+
                         val currentMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault()).format(Date())
                         val monthlyPoints = currentUser!!.monthlyPoints[currentMonth] ?: 0
-                        
+
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
@@ -213,8 +213,8 @@ fun UserProfileScreen(
                         }
                     }
                 }
-                
-                // Proximity monitoring settings
+
+
                 Card(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -267,10 +267,10 @@ fun UserProfileScreen(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.weight(1f))
-                
-                // Sign out button
+
+
                 Button(
                     onClick = { showSignOutDialog = true },
                     modifier = Modifier.fillMaxWidth(),
@@ -285,8 +285,8 @@ fun UserProfileScreen(
             }
         }
     }
-    
-    // Sign out dialog
+
+
     if (showSignOutDialog) {
         AlertDialog(
             onDismissRequest = { showSignOutDialog = false },

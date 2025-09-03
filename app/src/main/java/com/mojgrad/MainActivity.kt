@@ -19,9 +19,9 @@ import com.mojgrad.navigation.MojGradNavigation
 import com.mojgrad.ui.theme.MojGradTheme
 
 class MainActivity : ComponentActivity() {
-    
+
     private lateinit var proximityManager: ProximityManager
-    
+
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -32,16 +32,16 @@ class MainActivity : ComponentActivity() {
             println("DEBUG: MainActivity - Some permissions denied")
         }
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
+
         proximityManager = ProximityManager.getInstance(this)
-        
-        // Proverava permissions i pokreće proximity monitoring
+
+
         checkPermissionsAndStartMonitoring()
-        
+
         setContent {
             MojGradTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -52,28 +52,28 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
-        // Obradi novi intent ako je potrebno
+
     }
-    
+
     private fun checkPermissionsAndStartMonitoring() {
         val requiredPermissions = proximityManager.getRequiredPermissions()
         val missingPermissions = requiredPermissions.filter { permission ->
             ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED
         }
-        
+
         if (missingPermissions.isEmpty()) {
             proximityManager.startProximityMonitoring()
         } else {
             permissionLauncher.launch(missingPermissions.toTypedArray())
         }
     }
-    
+
     override fun onDestroy() {
         super.onDestroy()
-        // Ne zaustavljamo service u onDestroy jer želimo da radi u pozadini
+
     }
 }

@@ -19,55 +19,55 @@ class ListViewModel : ViewModel() {
     private val _allProblems = MutableStateFlow<List<Problem>>(emptyList())
     private val _problems = MutableStateFlow<List<Problem>>(emptyList())
     val problems: StateFlow<List<Problem>> = _problems
-    
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
-    
+
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
-    
-    // Praćenje glasova korisnika za probleme (problemId -> hasVoted)
+
+
     private val _userVotes = MutableStateFlow<Map<String, Boolean>>(emptyMap())
     val userVotes: StateFlow<Map<String, Boolean>> = _userVotes
-    
-    // Filter states
+
+
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
-    
+
     private val _selectedCategory = MutableStateFlow<String?>(null)
     val selectedCategory: StateFlow<String?> = _selectedCategory
-    
+
     private val _selectedAuthor = MutableStateFlow<String?>(null)
     val selectedAuthor: StateFlow<String?> = _selectedAuthor
-    
+
     private val _selectedStatus = MutableStateFlow("PRIJAVLJENO")
     val selectedStatus: StateFlow<String> = _selectedStatus
-    
-    private val _sortBy = MutableStateFlow("newest") // "newest", "votes"
+
+    private val _sortBy = MutableStateFlow("newest")
     val sortBy: StateFlow<String> = _sortBy
-    
+
     private val _dateRange = MutableStateFlow<Pair<Long?, Long?>>(null to null)
     val dateRange: StateFlow<Pair<Long?, Long?>> = _dateRange
-    
-    // Radius filtering state
-    private val _radiusKm = MutableStateFlow<Double?>(null) // Radius u kilometrima
+
+
+    private val _radiusKm = MutableStateFlow<Double?>(null)
     val radiusKm: StateFlow<Double?> = _radiusKm
-    
-    // Lokacija dolazi od MapViewModel-a
-    private val _userLocation = MutableStateFlow<Pair<Double, Double>?>(null) // lat, lng
+
+
+    private val _userLocation = MutableStateFlow<Pair<Double, Double>?>(null)
     val userLocation: StateFlow<Pair<Double, Double>?> = _userLocation
-    
+
     private val db = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
     init {
         fetchProblems()
         fetchUserVotes()
-        // Apply filters whenever any filter changes
+
         observeFilters()
     }
-    
-    // Metoda za postavljanje lokacije korisnika od MapViewModel-a
+
+
     fun updateUserLocation(lat: Double?, lng: Double?) {
         _userLocation.value = if (lat != null && lng != null) {
             println("DEBUG: ListViewModel - User location updated: lat=$lat, lng=$lng")
@@ -77,7 +77,7 @@ class ListViewModel : ViewModel() {
             null
         }
     }
-    
+
     private fun observeFilters() {
         viewModelScope.launch {
             combine(
@@ -100,7 +100,7 @@ class ListViewModel : ViewModel() {
                 val dateRange = flows[6] as Pair<Long?, Long?>
                 val radiusKm = flows[7] as Double?
                 val userLocation = flows[8] as Pair<Double, Double>?
-                
+
                 applyFilters(allProblems, searchQuery, category, author, status, sortBy, dateRange, radiusKm, userLocation)
             }.collect { filteredProblems ->
                 println("DEBUG: ListViewModel - observeFilters collected ${filteredProblems.size} filtered problems")
@@ -112,8 +112,8 @@ class ListViewModel : ViewModel() {
     private fun fetchProblems() {
         _isLoading.value = true
         _errorMessage.value = null
-        
-        // Fetch ALL problems for better filtering/searching
+
+
         db.collection("problems")
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
@@ -127,7 +127,7 @@ class ListViewModel : ViewModel() {
                     val problemList = snapshot.documents.map { document ->
                         document.toObject(Problem::class.java)?.copy(id = document.id)
                     }.filterNotNull()
-                    
+
                     _allProblems.value = problemList
                     _isLoading.value = false
                     println("DEBUG: ListViewModel - Real-time update - Loaded ${problemList.size} total problems")
@@ -137,17 +137,17 @@ class ListViewModel : ViewModel() {
                 }
             }
     }
-    
+
     private fun fetchUserVotes() {
-        val currentUser = auth.currentUser 
+        val currentUser = auth.currentUser
         if (currentUser == null) {
             println("DEBUG: No current user for fetching votes")
             return
         }
-        
+
         println("DEBUG: Fetching votes for user: ${currentUser.uid}")
-        
-        // Real-time listener za glasove korisnika
+
+
         db.collection("votes")
             .whereEqualTo("userId", currentUser.uid)
             .addSnapshotListener { snapshot, e ->
@@ -161,7 +161,7 @@ class ListViewModel : ViewModel() {
                         val vote = document.toObject(Vote::class.java)
                         vote?.problemId
                     }.associateWith { true }
-                    
+
                     _userVotes.value = votesMap
                     println("DEBUG: User votes updated - ${votesMap.size} votes: $votesMap")
                 } else {
@@ -169,7 +169,7 @@ class ListViewModel : ViewModel() {
                 }
             }
     }
-    
+
     private fun applyFilters(
         allProblems: List<Problem>,
         searchQuery: String,
@@ -191,15 +191,15 @@ class ListViewModel : ViewModel() {
         println("  - Date range: ${dateRange.first} to ${dateRange.second}")
         println("  - Radius km: $radiusKm")
         println("  - User location: $userLocation")
-        
+
         val afterStatusFilter = allProblems.filter { problem ->
-            // Status filter
+
             problem.status == status
         }
         println("DEBUG: After status filter ($status): ${afterStatusFilter.size} problems")
-        
+
         val afterSearchFilter = afterStatusFilter.filter { problem ->
-            // Search filter (description and category)
+
             if (searchQuery.isBlank()) true
             else {
                 problem.description.contains(searchQuery, ignoreCase = true) ||
@@ -207,72 +207,72 @@ class ListViewModel : ViewModel() {
             }
         }
         println("DEBUG: After search filter ('$searchQuery'): ${afterSearchFilter.size} problems")
-        
+
         val afterCategoryFilter = afterSearchFilter.filter { problem ->
-            // Category filter
+
             category == null || problem.category == category
         }
         println("DEBUG: After category filter ($category): ${afterCategoryFilter.size} problems")
-        
+
         val afterAuthorFilter = afterCategoryFilter.filter { problem ->
-            // Author filter
+
             author == null || problem.authorName == author
         }
         println("DEBUG: After author filter ($author): ${afterAuthorFilter.size} problems")
-        
+
         val afterDateFilter = afterAuthorFilter.filter { problem ->
-            // Date range filter
+
             val (startDate, endDate) = dateRange
             if (startDate == null && endDate == null) return@filter true
-            
+
             val problemTime = problem.timestamp?.time ?: return@filter false
-            
+
             val afterStart = startDate?.let { problemTime >= it } ?: true
             val beforeEnd = endDate?.let { problemTime <= it } ?: true
-            
+
             afterStart && beforeEnd
         }
         println("DEBUG: After date filter: ${afterDateFilter.size} problems")
-        
+
         val afterRadiusFilter = afterDateFilter.filter { problem ->
-            // Radius filter using GeoFire
+
             if (radiusKm == null || userLocation == null || problem.location == null) {
                 println("DEBUG: Radius filter skipped - radiusKm=$radiusKm, userLocation=$userLocation, problem.location=${problem.location}")
-                return@filter true // Ne filtriramo ako nema radius ili lokacije
+                return@filter true
             }
-            
+
             println("DEBUG: Raw coordinates:")
             println("  - User: lat=${userLocation.first}, lng=${userLocation.second}")
             println("  - Problem: lat=${problem.location!!.latitude}, lng=${problem.location!!.longitude}")
-            
+
             val problemLocation = GeoLocation(
                 problem.location!!.latitude,
                 problem.location!!.longitude
             )
             val center = GeoLocation(userLocation.first, userLocation.second)
-            
+
             println("DEBUG: GeoLocation objects:")
             println("  - User GeoLocation: lat=${center.latitude}, lng=${center.longitude}")
             println("  - Problem GeoLocation: lat=${problemLocation.latitude}, lng=${problemLocation.longitude}")
-            
-            // Izračunaj rastojanje - GeoFire vraća METRE, konvertuj u kilometre
+
+
             val distanceMeters = GeoFireUtils.getDistanceBetween(problemLocation, center)
-            val distanceKm = distanceMeters / 1000.0 // konvertuj m → km
-            
+            val distanceKm = distanceMeters / 1000.0
+
             val isWithinRadius = distanceKm <= radiusKm
-            
+
             println("DEBUG: Problem '${problem.description.take(30)}...' at (${problem.location!!.latitude}, ${problem.location!!.longitude})")
             println("  - GeoFire distance (meters): ${String.format("%.2f", distanceMeters)} m")
             println("  - GeoFire distance (km): ${String.format("%.2f", distanceKm)} km")
             println("  - Radius limit: $radiusKm km")
             println("  - Within radius: $isWithinRadius")
-            
+
             isWithinRadius
         }
         println("DEBUG: After radius filter ($radiusKm km): ${afterRadiusFilter.size} problems")
-        
+
         return afterRadiusFilter.let { filteredList ->
-            // Sort
+
             when (sortBy) {
                 "votes" -> filteredList.sortedByDescending { it.votes }
                 "newest" -> filteredList.sortedByDescending { it.timestamp }
@@ -282,37 +282,37 @@ class ListViewModel : ViewModel() {
             println("DEBUG: Final filtered and sorted list: ${finalList.size} problems")
         }
     }
-    
-    // Filter update functions
+
+
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
-    
+
     fun updateCategoryFilter(category: String?) {
         _selectedCategory.value = category
     }
-    
+
     fun updateAuthorFilter(author: String?) {
         _selectedAuthor.value = author
     }
-    
+
     fun updateStatusFilter(status: String) {
         _selectedStatus.value = status
     }
-    
+
     fun updateSortBy(sortBy: String) {
         _sortBy.value = sortBy
     }
-    
+
     fun updateDateRange(startDate: Long?, endDate: Long?) {
         _dateRange.value = startDate to endDate
     }
-    
+
     fun updateRadiusFilter(radiusKm: Double?) {
         println("DEBUG: ListViewModel - Radius filter updated: radiusKm=$radiusKm")
         _radiusKm.value = radiusKm
     }
-    
+
     fun clearAllFilters() {
         _searchQuery.value = ""
         _selectedCategory.value = null
@@ -322,16 +322,16 @@ class ListViewModel : ViewModel() {
         _dateRange.value = null to null
         _radiusKm.value = null
     }
-    
-    // Get unique values for filter options
+
+
     fun getUniqueCategories(): List<String> {
         return _allProblems.value.map { it.category }.filter { it.isNotEmpty() }.distinct().sorted()
     }
-    
+
     fun getUniqueAuthors(): List<String> {
         return _allProblems.value.map { it.authorName }.filter { it.isNotEmpty() }.distinct().sorted()
     }
-    
+
     fun toggleVoteForProblem(problem: Problem) {
         val currentUser = auth.currentUser
         if (currentUser == null) {
@@ -339,185 +339,185 @@ class ListViewModel : ViewModel() {
             println("DEBUG: User not logged in for voting")
             return
         }
-        
-        // Sprečavanje glasanja za sopstvene probleme
+
+
         if (problem.userId == currentUser.uid) {
             _errorMessage.value = "Ne možete glasati za sopstvene probleme"
             println("DEBUG: User trying to vote for own problem")
             return
         }
-        
-        // Sprečavanje glasanja za rešene probleme
+
+
         if (problem.status == ProblemStatus.RESENO) {
             _errorMessage.value = "Ne možete glasati za rešene probleme"
             println("DEBUG: User trying to vote for resolved problem")
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 val hasVoted = _userVotes.value[problem.id] == true
                 println("DEBUG: Toggle vote for problem ${problem.id}, hasVoted: $hasVoted")
-                
+
                 if (hasVoted) {
-                    // Remove vote
+
                     println("DEBUG: Removing vote for problem ${problem.id}")
                     removeVote(problem.id, currentUser.uid)
                 } else {
-                    // Add vote
+
                     println("DEBUG: Adding vote for problem ${problem.id}")
                     addVote(problem.id, currentUser.uid)
                 }
-                
+
             } catch (e: Exception) {
                 _errorMessage.value = "Greška prilikom glasanja: ${e.message}"
                 println("DEBUG: Error toggling vote: ${e.message}")
             }
         }
     }
-    
+
     private suspend fun addVote(problemId: String, userId: String) {
-        // Atomska transakcija za sve vote operacije
+
         db.runTransaction { transaction ->
-            // === FAZA 1: SVI READ-OVI MORAJU BITI PRVI ===
-            
-            // 1. Čita problem dokument
+
+
+
             val problemRef = db.collection("problems").document(problemId)
             val problemSnapshot = transaction.get(problemRef)
-            
-            // 2. Čita postojeći vote dokument
+
+
             val voteId = "${userId}_${problemId}"
             val voteRef = db.collection("votes").document(voteId)
             val existingVoteSnapshot = transaction.get(voteRef)
-            
-            // 3. Čita glasač dokument
+
+
             val voterRef = db.collection("users").document(userId)
             val voterSnapshot = transaction.get(voterRef)
-            
-            // 4. Čita autor problema dokument
-            val problemAuthorId = problemSnapshot.getString("userId") 
+
+
+            val problemAuthorId = problemSnapshot.getString("userId")
                 ?: throw Exception("Problem nema autora")
             val authorRef = db.collection("users").document(problemAuthorId)
             val authorSnapshot = transaction.get(authorRef)
-            
-            // === FAZA 2: VALIDACIJA ===
-            
+
+
+
             if (!problemSnapshot.exists()) {
                 throw Exception("Problem više ne postoji")
             }
-            
+
             if (problemAuthorId == userId) {
                 throw Exception("Ne možete glasati za sopstvene probleme")
             }
-            
+
             val problemStatus = problemSnapshot.getString("status") ?: ProblemStatus.PRIJAVLJENO
             if (problemStatus == ProblemStatus.RESENO) {
                 throw Exception("Ne možete glasati za rešene probleme")
             }
-            
-            // Umesto da bacamo grešku, jednostavno ignorišemo ako vote već postoji
-            // Ovo rešava race condition problema
+
+
+
             if (existingVoteSnapshot.exists()) {
                 println("DEBUG: Vote already exists for problem $problemId by user $userId, skipping...")
-                return@runTransaction null // Izlazimo iz transakcije bez greške
+                return@runTransaction null
             }
-            
-            // === FAZA 3: SVI WRITE-OVI POSLE SVIH READ-OVA ===
-            
-            // 5. Kreira vote dokument
+
+
+
+
             val vote = Vote(
                 id = voteId,
                 userId = userId,
                 problemId = problemId
             )
             transaction.set(voteRef, vote)
-            
-            // 6. Ažurira broj glasova na problemu
+
+
             val currentVotes = problemSnapshot.getLong("votes") ?: 0L
             transaction.update(problemRef, "votes", currentVotes + 1)
-            
-            // 7. Dodaje poene glasaču
+
+
             if (voterSnapshot.exists()) {
                 updateUserPointsInTransaction(transaction, voterRef, voterSnapshot, 1)
             }
-            
-            // 8. Dodaje poene autoru problema
+
+
             if (authorSnapshot.exists()) {
                 updateUserPointsInTransaction(transaction, authorRef, authorSnapshot, 1)
             }
-            
-            problemAuthorId // Vraća author ID za logging
+
+            problemAuthorId
         }.await()
-        
+
         println("DEBUG: Vote added for problem $problemId by user $userId")
     }
-    
+
     private suspend fun removeVote(problemId: String, userId: String) {
-        // Atomska transakcija za uklanjanje vote-a
+
         db.runTransaction { transaction ->
-            // === FAZA 1: SVI READ-OVI MORAJU BITI PRVI ===
-            
-            // 1. Čita postojeći vote dokument
+
+
+
             val voteId = "${userId}_${problemId}"
             val voteRef = db.collection("votes").document(voteId)
             val voteSnapshot = transaction.get(voteRef)
-            
-            // 2. Čita problem dokument
+
+
             val problemRef = db.collection("problems").document(problemId)
             val problemSnapshot = transaction.get(problemRef)
-            
-            // 3. Čita glasač dokument
+
+
             val voterRef = db.collection("users").document(userId)
             val voterSnapshot = transaction.get(voterRef)
-            
-            // 4. Čita autor problema dokument
+
+
             val problemAuthorId = problemSnapshot.getString("userId")
                 ?: throw Exception("Problem nema autora")
             val authorRef = db.collection("users").document(problemAuthorId)
             val authorSnapshot = transaction.get(authorRef)
-            
-            // === FAZA 2: VALIDACIJA ===
-            
+
+
+
             if (!voteSnapshot.exists()) {
                 println("DEBUG: Vote doesn't exist for problem $problemId by user $userId, skipping...")
-                return@runTransaction null // Izlazimo bez greške
+                return@runTransaction null
             }
-            
+
             if (!problemSnapshot.exists()) {
                 throw Exception("Problem više ne postoji")
             }
-            
+
             val problemStatus = problemSnapshot.getString("status") ?: ProblemStatus.PRIJAVLJENO
             if (problemStatus == ProblemStatus.RESENO) {
                 throw Exception("Ne možete ukloniti glas sa rešenih problema")
             }
-            
-            // === FAZA 3: SVI WRITE-OVI POSLE SVIH READ-OVA ===
-            
-            // 5. Briše vote dokument
+
+
+
+
             transaction.delete(voteRef)
-            
-            // 6. Smanjuje broj glasova na problemu (ali ne ispod 0)
+
+
             val currentVotes = problemSnapshot.getLong("votes") ?: 0L
             val newVotes = maxOf(0L, currentVotes - 1)
             transaction.update(problemRef, "votes", newVotes)
-            
-            // 7. Oduzima poene glasaču
+
+
             if (voterSnapshot.exists()) {
                 updateUserPointsInTransaction(transaction, voterRef, voterSnapshot, -1)
             }
-            
-            // 8. Oduzima poene autoru problema
+
+
             if (authorSnapshot.exists()) {
                 updateUserPointsInTransaction(transaction, authorRef, authorSnapshot, -1)
             }
-            
-            problemAuthorId // Vraća author ID za logging
+
+            problemAuthorId
         }.await()
-        
+
         println("DEBUG: Vote removed for problem $problemId by user $userId")
     }
-    
+
     private fun updateUserPointsInTransaction(
         transaction: com.google.firebase.firestore.Transaction,
         userRef: com.google.firebase.firestore.DocumentReference,
@@ -525,31 +525,31 @@ class ListViewModel : ViewModel() {
         pointsChange: Long
     ) {
         val currentMonth = java.text.SimpleDateFormat("yyyy-MM", java.util.Locale.getDefault()).format(java.util.Date())
-        
+
         val currentTotalPoints = userSnapshot.getLong("totalPoints") ?: 0L
         val monthlyPointsMap = userSnapshot.get("monthlyPoints") as? Map<String, Long> ?: emptyMap()
         val currentMonthPoints = monthlyPointsMap[currentMonth] ?: 0L
-        
-        // Sprečava negativne poene
+
+
         val newTotalPoints = maxOf(0L, currentTotalPoints + pointsChange)
         val newMonthlyPoints = maxOf(0L, currentMonthPoints + pointsChange)
-        
+
         val updatedMonthlyPoints = monthlyPointsMap.toMutableMap()
         updatedMonthlyPoints[currentMonth] = newMonthlyPoints
-        
+
         transaction.update(userRef, mapOf(
             "totalPoints" to newTotalPoints,
             "monthlyPoints" to updatedMonthlyPoints
         ))
     }
-    
+
     fun toggleProblemStatus(problem: Problem) {
         val currentUser = auth.currentUser
         if (currentUser == null) {
             _errorMessage.value = "Morate biti ulogovani"
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 val newStatus = when (problem.status) {
@@ -557,25 +557,25 @@ class ListViewModel : ViewModel() {
                     ProblemStatus.RESENO -> ProblemStatus.PRIJAVLJENO
                     else -> ProblemStatus.PRIJAVLJENO
                 }
-                
+
                 println("DEBUG: Admin changing problem ${problem.id} status from ${problem.status} to $newStatus")
-                
-                // Update problem status using transaction for consistency
+
+
                 db.runTransaction { transaction ->
                     val problemRef = db.collection("problems").document(problem.id)
                     val problemSnapshot = transaction.get(problemRef)
-                    
+
                     if (!problemSnapshot.exists()) {
                         throw Exception("Problem više ne postoji")
                     }
-                    
+
                     val updates = mutableMapOf<String, Any>(
                         "status" to newStatus,
                         "lastModifiedBy" to currentUser.uid,
                         "lastModifiedAt" to System.currentTimeMillis()
                     )
-                    
-                    // Add reward points if marking as resolved
+
+
                     if (newStatus == ProblemStatus.RESENO) {
                         val problemAuthorId = problemSnapshot.getString("userId")
                         if (problemAuthorId != null) {
@@ -586,22 +586,22 @@ class ListViewModel : ViewModel() {
                             }
                         }
                     }
-                    
+
                     transaction.update(problemRef, updates)
                 }.await()
-                
+
                 println("DEBUG: Problem ${problem.id} status changed to $newStatus successfully")
-                
-                // Refresh problems to reflect the status change
+
+
                 fetchProblems()
-                
+
             } catch (e: Exception) {
                 _errorMessage.value = "Greška prilikom menjanja statusa: ${e.message}"
                 println("DEBUG: Error changing problem status: ${e.message}")
             }
         }
     }
-    
+
     fun clearError() {
         _errorMessage.value = null
     }

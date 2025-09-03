@@ -28,7 +28,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         println("DEBUG: AuthViewModel initialized")
-        // Prati stanje autentifikacije
+
         viewModelScope.launch {
             authRepository.getAuthStateFlow().collect { isLoggedIn ->
                 println("DEBUG: Auth state changed: isLoggedIn = $isLoggedIn")
@@ -50,7 +50,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Prijava korisnika
+
     fun signIn(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
             _uiState.value = _uiState.value.copy(
@@ -64,7 +64,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
             when (val result = authRepository.signIn(email, password)) {
                 is AuthResult.Success -> {
-                    // UI state će biti ažuriran preko getAuthStateFlow()
+
                 }
                 is AuthResult.Error -> {
                     _uiState.value = _uiState.value.copy(
@@ -73,16 +73,16 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     )
                 }
                 is AuthResult.Loading -> {
-                    // Već je loading = true
+
                 }
             }
         }
     }
 
-    // Registracija korisnika
+
     fun signUp(email: String, password: String, name: String, phone: String, imageUri: String?) {
         println("DEBUG: AuthViewModel.signUp called with email: $email, imageUri: $imageUri")
-        
+
         if (email.isBlank() || password.isBlank() || name.isBlank() || phone.isBlank()) {
             println("DEBUG: Validation failed - empty fields")
             _uiState.value = _uiState.value.copy(
@@ -109,7 +109,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 when (val result = authRepository.signUp(email, password, name, phone, imageUri)) {
                     is AuthResult.Success -> {
                         println("DEBUG: Registration successful")
-                        // UI state će biti ažuriran preko getAuthStateFlow()
+
                     }
                     is AuthResult.Error -> {
                         println("DEBUG: Registration failed with error: ${result.message}")
@@ -120,7 +120,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     is AuthResult.Loading -> {
                         println("DEBUG: Registration still loading")
-                        // Već je loading = true
+
                     }
                 }
             } catch (e: Exception) {
@@ -134,7 +134,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Učitavanje korisničkih podataka sa retry logikom
+
     private fun loadUserData(uid: String, retryCount: Int = 0) {
         println("DEBUG: Loading user data for UID: $uid (attempt ${retryCount + 1})")
         viewModelScope.launch {
@@ -152,8 +152,8 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 is AuthResult.Error -> {
                     println("DEBUG: Failed to load user data: ${result.message}")
-                    
-                    // Retry up to 3 times with delay for new registrations
+
+
                     if (retryCount < 3) {
                         println("DEBUG: Retrying to load user data in 2 seconds (attempt ${retryCount + 2})")
                         delay(2000)
@@ -161,7 +161,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                     } else {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            isLoggedIn = true, // Korisnik je i dalje ulogovan u Firebase
+                            isLoggedIn = true,
                             errorMessage = result.message
                         )
                     }
@@ -174,12 +174,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Odjava korisnika
+
     fun signOut() {
         authRepository.signOut()
     }
 
-    // Brisanje greške
+
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }

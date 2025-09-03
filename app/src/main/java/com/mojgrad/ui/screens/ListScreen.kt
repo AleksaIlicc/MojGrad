@@ -43,13 +43,13 @@ fun ListScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val userVotes by viewModel.userVotes.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    
+
     var showFilterDialog by remember { mutableStateOf(false) }
-    
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Top App Bar
+
         TopAppBar(
             title = {
                 Text("Problemi")
@@ -60,8 +60,8 @@ fun ListScreen(
                 }
             }
         )
-        
-        // Search Bar
+
+
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { viewModel.updateSearchQuery(it) },
@@ -81,8 +81,8 @@ fun ListScreen(
             },
             singleLine = true
         )
-        
-        // Error message kao snackbar na vrhu
+
+
         errorMessage?.let { error ->
             Card(
                 modifier = Modifier
@@ -118,7 +118,7 @@ fun ListScreen(
                 }
             }
         }
-        
+
         if (isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -176,8 +176,8 @@ fun ListScreen(
             }
         }
     }
-    
-    // Filter Dialog
+
+
     if (showFilterDialog) {
         FilterDialog(
             viewModel = viewModel,
@@ -203,13 +203,13 @@ fun ProblemListItem(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header sa imenom autora (levo) i kategorijom (desno)
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                // Ime autora
+
                 Text(
                     text = problem.authorName.ifEmpty { "Nepoznat korisnik" },
                     style = MaterialTheme.typography.labelMedium,
@@ -217,8 +217,8 @@ fun ProblemListItem(
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
                 )
-                
-                // Kategorija
+
+
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.primaryContainer
@@ -231,10 +231,10 @@ fun ProblemListItem(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(8.dp))
-            
-            // Timestamp
+
+
             if (problem.timestamp != null) {
                 val formatter = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
                 Text(
@@ -244,16 +244,16 @@ fun ProblemListItem(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
-            
-            // Opis problema
+
+
             Text(
                 text = problem.description,
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis
             )
-            
-            // Slika problema (ako postoji)
+
+
             if (!problem.imageUrl.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 AsyncImage(
@@ -266,20 +266,20 @@ fun ProblemListItem(
                     contentScale = ContentScale.Fit
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
-            // Footer sa glasovima i akcijama
+
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Vote dugme - disable za rešene probleme ili sopstvene probleme
+
                 val isResolved = problem.status == ProblemStatus.RESENO
                 val isOwnProblem = currentUser != null && problem.userId == currentUser.uid
                 val canVote = !isResolved && !isOwnProblem
-                
+
                 OutlinedButton(
                     onClick = if (canVote) onVoteClick else { {} },
                     modifier = Modifier.height(36.dp),
@@ -312,13 +312,13 @@ fun ProblemListItem(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-                
-                // Buttons row
+
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Map dugme
+
                     if (problem.location != null) {
                         OutlinedButton(
                             onClick = onMapClick,
@@ -357,8 +357,8 @@ fun FilterDialog(
     val dateRange by viewModel.dateRange.collectAsState()
     val radiusKm by viewModel.radiusKm.collectAsState()
     val userLocation by viewModel.userLocation.collectAsState()
-    
-    // Local state for temporary changes
+
+
     var tempCategory by remember { mutableStateOf(selectedCategory) }
     var tempAuthor by remember { mutableStateOf(selectedAuthor) }
     var tempStatus by remember { mutableStateOf(selectedStatus) }
@@ -367,27 +367,27 @@ fun FilterDialog(
     var tempEndDate by remember { mutableStateOf(dateRange.second) }
     var tempRadiusKm by remember { mutableStateOf(radiusKm?.toString() ?: "") }
     var tempCenterLocation by remember { mutableStateOf(userLocation) }
-    
-    // Dropdown states
+
+
     var categoryExpanded by remember { mutableStateOf(false) }
     var authorExpanded by remember { mutableStateOf(false) }
     var statusExpanded by remember { mutableStateOf(false) }
     var sortExpanded by remember { mutableStateOf(false) }
-    
-    // Date picker states
+
+
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
-    
-    // Get options
+
+
     val categories = remember(viewModel) { listOf("Sve kategorije") + viewModel.getUniqueCategories() }
     val authors = remember(viewModel) { listOf("Svi autori") + viewModel.getUniqueAuthors() }
     val statuses = listOf("PRIJAVLJENO", "REŠENO")
     val sortOptions = listOf("newest" to "Najnoviji", "votes" to "Po glasovima")
-    
-    // Date formatters
+
+
     val dateFormatter = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
     val timeFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -419,7 +419,7 @@ fun FilterDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Category Filter
+
                 ExposedDropdownMenuBox(
                     expanded = categoryExpanded,
                     onExpandedChange = { categoryExpanded = !categoryExpanded }
@@ -448,8 +448,8 @@ fun FilterDialog(
                         }
                     }
                 }
-                
-                // Author Filter
+
+
                 ExposedDropdownMenuBox(
                     expanded = authorExpanded,
                     onExpandedChange = { authorExpanded = !authorExpanded }
@@ -478,8 +478,8 @@ fun FilterDialog(
                         }
                     }
                 }
-                
-                // Status Filter
+
+
                 ExposedDropdownMenuBox(
                     expanded = statusExpanded,
                     onExpandedChange = { statusExpanded = !statusExpanded }
@@ -508,8 +508,8 @@ fun FilterDialog(
                         }
                     }
                 }
-                
-                // Sort By - only show if showSorting is true
+
+
                 if (showSorting) {
                     ExposedDropdownMenuBox(
                         expanded = sortExpanded,
@@ -540,21 +540,21 @@ fun FilterDialog(
                         }
                     }
                 }
-                
-                // Date Range Section
+
+
                 Text(
                     text = "Opseg datuma",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium
                 )
-                
-                // Start Date
+
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
-                        value = tempStartDate?.let { 
+                        value = tempStartDate?.let {
                             "${dateFormatter.format(Date(it))} ${timeFormatter.format(Date(it))}"
                         } ?: "",
                         onValueChange = { },
@@ -568,7 +568,7 @@ fun FilterDialog(
                         },
                         modifier = Modifier.weight(1f)
                     )
-                    
+
                     if (tempStartDate != null) {
                         IconButton(
                             onClick = { tempStartDate = null },
@@ -578,14 +578,14 @@ fun FilterDialog(
                         }
                     }
                 }
-                
-                // End Date
+
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
-                        value = tempEndDate?.let { 
+                        value = tempEndDate?.let {
                             "${dateFormatter.format(Date(it))} ${timeFormatter.format(Date(it))}"
                         } ?: "",
                         onValueChange = { },
@@ -599,7 +599,7 @@ fun FilterDialog(
                         },
                         modifier = Modifier.weight(1f)
                     )
-                    
+
                     if (tempEndDate != null) {
                         IconButton(
                             onClick = { tempEndDate = null },
@@ -609,15 +609,15 @@ fun FilterDialog(
                         }
                     }
                 }
-                
-                // Radius Filter Section
+
+
                 Text(
                     text = "Filter po radijusu",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Medium
                 )
-                
-                // Location status info
+
+
                 if (userLocation == null) {
                     Text(
                         text = "Potrebno je odobriti pristup lokaciji za radius pretragu",
@@ -625,11 +625,11 @@ fun FilterDialog(
                         color = MaterialTheme.colorScheme.error
                     )
                 }
-                
+
                 OutlinedTextField(
                     value = tempRadiusKm,
                     onValueChange = { newValue ->
-                        // Samo brojevi i decimalne tačke
+
                         if (newValue.isEmpty() || newValue.matches(Regex("^\\d*\\.?\\d*$"))) {
                             tempRadiusKm = newValue
                         }
@@ -645,7 +645,7 @@ fun FilterDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    // Apply filters
+
                     viewModel.updateCategoryFilter(tempCategory)
                     viewModel.updateAuthorFilter(tempAuthor)
                     viewModel.updateStatusFilter(tempStatus)
@@ -653,12 +653,12 @@ fun FilterDialog(
                         viewModel.updateSortBy(tempSortBy)
                     }
                     viewModel.updateDateRange(tempStartDate, tempEndDate)
-                    
-                    // Apply radius filter
+
+
                     val radiusKm = tempRadiusKm.toDoubleOrNull()
                     println("DEBUG: FilterDialog - Apply button clicked, radiusKm=$radiusKm")
                     viewModel.updateRadiusFilter(radiusKm)
-                    
+
                     onDismiss()
                 }
             ) {
@@ -673,8 +673,8 @@ fun FilterDialog(
             }
         }
     )
-    
-    // Date Pickers
+
+
     if (showStartDatePicker) {
         DateTimePickerDialog(
             onDateTimeSelected = { selectedDateTimeMillis ->
@@ -684,7 +684,7 @@ fun FilterDialog(
             onDismiss = { showStartDatePicker = false }
         )
     }
-    
+
     if (showEndDatePicker) {
         DateTimePickerDialog(
             onDateTimeSelected = { selectedDateTimeMillis ->
@@ -707,13 +707,13 @@ fun DateTimePickerDialog(
     var selectedDate by remember { mutableStateOf<Long?>(null) }
     var selectedHour by remember { mutableStateOf(0) }
     var selectedMinute by remember { mutableStateOf(0) }
-    
+
     val datePickerState = rememberDatePickerState()
     val timePickerState = rememberTimePickerState(
         initialHour = selectedHour,
         initialMinute = selectedMinute
     )
-    
+
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = onDismiss,
@@ -739,7 +739,7 @@ fun DateTimePickerDialog(
             DatePicker(state = datePickerState)
         }
     }
-    
+
     if (showTimePicker && selectedDate != null) {
         AlertDialog(
             onDismissRequest = onDismiss,
@@ -755,7 +755,7 @@ fun DateTimePickerDialog(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        // Combine date and time
+
                         val calendar = Calendar.getInstance().apply {
                             timeInMillis = selectedDate!!
                             set(Calendar.HOUR_OF_DAY, timePickerState.hour)

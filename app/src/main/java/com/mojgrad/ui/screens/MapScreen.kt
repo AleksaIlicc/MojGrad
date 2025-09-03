@@ -55,11 +55,11 @@ import com.mojgrad.ui.viewmodel.ListViewModel
 fun MapScreen(
     modifier: Modifier = Modifier,
     mapViewModel: MapViewModel = viewModel(),
-    listViewModel: ListViewModel = viewModel(), // Dodano za filtriranje
+    listViewModel: ListViewModel = viewModel(),
     rootNavController: NavHostController,
-    targetLocation: LatLng? = null // Nova lokacija na koju treba da se fokusira
+    targetLocation: LatLng? = null
 ) {
-    // Koristimo filtrirane probleme iz ListViewModel umesto mapViewModel
+
     val problems by listViewModel.problems.collectAsState()
     val searchQuery by listViewModel.searchQuery.collectAsState()
 
@@ -70,7 +70,7 @@ fun MapScreen(
     var showPermissionDialog by remember { mutableStateOf(false) }
     var showFilterDialog by remember { mutableStateOf(false) }
 
-    // Permission launcher
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -79,21 +79,21 @@ fun MapScreen(
             mapViewModel.onLocationPermissionsGranted()
             showPermissionDialog = false
         } else {
-            // Ako permissions nisu odobreni, ostavi dialog otvoren
+
             println("DEBUG: Location permissions denied")
         }
     }
 
-    // Stanje za kameru mape - koristi target lokaciju ili korisničku lokaciju ako je dostupna
+
     val initialLocation = targetLocation ?: currentLocation ?: LatLng(
         44.787197,
         20.457273
-    ) // Target > User location > Beograd fallback
+    )
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(initialLocation, 15f)
     }
 
-    // Ažuriranje kamere kada se lokacija promeni (samo ako nema target lokacije)
+
     LaunchedEffect(currentLocation) {
         if (targetLocation == null) {
             currentLocation?.let { location ->
@@ -103,23 +103,23 @@ fun MapScreen(
         }
     }
 
-    // Fokusiranje na target lokaciju (ima prioritet nad korisničkom lokacijom)
+
     LaunchedEffect(targetLocation) {
         targetLocation?.let { location ->
             cameraPositionState.position =
-                CameraPosition.fromLatLngZoom(location, 16f) // Malo veći zoom za target
+                CameraPosition.fromLatLngZoom(location, 16f)
             println("DEBUG: Camera focused on target location: $location")
         }
     }
 
-    // Zahtevaj permissions kada se component učita (samo jednom)
+
     LaunchedEffect(Unit) {
         if (!locationPermissionGranted) {
             showPermissionDialog = true
         }
     }
 
-    // Debug info - ažurirano da prati promene
+
     LaunchedEffect(problems) {
         println("DEBUG: MapScreen problems updated - showing ${problems.size} problems")
         problems.forEach { problem ->
@@ -127,14 +127,14 @@ fun MapScreen(
         }
     }
 
-    // Debug search query changes
+
     LaunchedEffect(searchQuery) {
         println("DEBUG: MapScreen search query changed to: '$searchQuery'")
     }
 
-    // Box koji sadrži search bar, mapu i FloatingActionButton
+
     Column(modifier = modifier.fillMaxSize()) {
-        // Search Bar i Filter Button
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -147,7 +147,7 @@ fun MapScreen(
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Search Field
+
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { listViewModel.updateSearchQuery(it) },
@@ -170,7 +170,7 @@ fun MapScreen(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Filter Button
+
                 IconButton(
                     onClick = { showFilterDialog = true }
                 ) {
@@ -179,9 +179,9 @@ fun MapScreen(
             }
         }
 
-        // Mapa
+
         Box(modifier = Modifier.fillMaxSize()) {
-            // Google Maps sa markerima i user location
+
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
@@ -193,10 +193,10 @@ fun MapScreen(
                     zoomControlsEnabled = true
                 )
             ) {
-                // Debug log za marker recomposition
+
                 println("DEBUG: GoogleMap recomposing with ${problems.size} markers")
-                
-                // Iteriraj kroz listu problema i dodaj marker za svaki
+
+
                 problems.forEach { problem ->
                     problem.location?.let { geoPoint ->
                         println("DEBUG: Creating marker for ${problem.category} at ${geoPoint.latitude}, ${geoPoint.longitude}")
@@ -214,7 +214,7 @@ fun MapScreen(
                 }
             }
 
-            // FloatingActionButton za dodavanje problema - prikazuje se samo ako su dozvole odobrene
+
             if (locationPermissionGranted) {
                 FloatingActionButton(
                     onClick = {
@@ -228,7 +228,7 @@ fun MapScreen(
                 }
             }
 
-            // Poruka o potrebi za lokacijom - prikazuje se samo ako dozvole nisu odobrene
+
             if (!locationPermissionGranted) {
                 Card(
                     modifier = Modifier
@@ -271,7 +271,7 @@ fun MapScreen(
             }
         }
 
-        // Filter Dialog - koristi postojeći FilterDialog sa showSorting = false
+
         if (showFilterDialog) {
             com.mojgrad.ui.screens.FilterDialog(
                 viewModel = listViewModel,
@@ -280,7 +280,7 @@ fun MapScreen(
             )
         }
 
-        // Permission dialog
+
         if (showPermissionDialog) {
             AlertDialog(
                 onDismissRequest = { showPermissionDialog = false },

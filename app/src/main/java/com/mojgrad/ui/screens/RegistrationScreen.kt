@@ -54,7 +54,7 @@ fun RegistrationScreen(
     var showImagePicker by remember { mutableStateOf(false) }
     var isUploadingImage by remember { mutableStateOf(false) }
     var uploadError by remember { mutableStateOf<String?>(null) }
-    
+
     val context = LocalContext.current
     val imageUploadService = remember { ImageUploadService(context) }
     val scope = rememberCoroutineScope()
@@ -66,7 +66,7 @@ fun RegistrationScreen(
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Naslov
+
         Text(
             text = "Kreiraj nalog",
             fontSize = 28.sp,
@@ -74,7 +74,7 @@ fun RegistrationScreen(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
+
         Text(
             text = "Unesite svoje podatke da se registrujete",
             fontSize = 14.sp,
@@ -83,7 +83,7 @@ fun RegistrationScreen(
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
-        // Profile Image Picker
+
         Card(
             modifier = Modifier
                 .size(120.dp)
@@ -106,8 +106,8 @@ fun RegistrationScreen(
                             .clip(CircleShape),
                         contentScale = ContentScale.Crop
                     )
-                    
-                    // Upload progress indicator
+
+
                     if (isUploadingImage) {
                         Box(
                             modifier = Modifier
@@ -138,10 +138,10 @@ fun RegistrationScreen(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Error message display
+
         uploadError?.let { error ->
             Card(
                 modifier = Modifier
@@ -170,7 +170,7 @@ fun RegistrationScreen(
             }
         }
 
-        // Error message display
+
         uiState.errorMessage?.let { error ->
             Card(
                 modifier = Modifier
@@ -199,7 +199,7 @@ fun RegistrationScreen(
             }
         }
 
-        // Form fields
+
         OutlinedTextField(
             value = firstName,
             onValueChange = { firstName = it },
@@ -335,14 +335,14 @@ fun RegistrationScreen(
                 .padding(bottom = 24.dp)
         )
 
-        // Registration button
+
         Button(
             onClick = {
                 scope.launch {
                     if (selectedImageUri != null) {
                         isUploadingImage = true
                         uploadError = null
-                        
+
                         try {
                             val result = imageUploadService.uploadImage(selectedImageUri!!)
                             result.fold(
@@ -363,11 +363,11 @@ fun RegistrationScreen(
                     }
                 }
             },
-            enabled = firstName.isNotBlank() && 
-                     lastName.isNotBlank() && 
-                     phoneNumber.isNotBlank() && 
-                     email.isNotBlank() && 
-                     password.isNotBlank() && 
+            enabled = firstName.isNotBlank() &&
+                     lastName.isNotBlank() &&
+                     phoneNumber.isNotBlank() &&
+                     email.isNotBlank() &&
+                     password.isNotBlank() &&
                      confirmPassword == password &&
                      !uiState.isLoading &&
                      !isUploadingImage,
@@ -389,7 +389,7 @@ fun RegistrationScreen(
             }
         }
 
-        // Login navigation
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(top = 16.dp)
@@ -408,14 +408,14 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
     }
-    
-    // Image Picker Dialog
+
+
     ImagePickerDialog(
         showDialog = showImagePicker,
         onDismiss = { showImagePicker = false },
         onImageSelected = { uri ->
             selectedImageUri = uri
-            uploadError = null // Reset any previous upload errors
+            uploadError = null
         }
     )
 }

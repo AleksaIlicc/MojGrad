@@ -9,12 +9,12 @@ data class Problem(
     val description: String = "",
     val category: String = "",
     val location: GeoPoint? = null,
-    val geohash: String = "", // Geohash za efikasno geo filtriranje
+    val geohash: String = "",
     val userId: String = "",
-    val authorName: String = "", // Ime i prezime autora
+    val authorName: String = "",
     val votes: Int = 0,
     val status: String = "PRIJAVLJENO",
-    val imageUrl: String? = null, // URL slike problema
+    val imageUrl: String? = null,
     @ServerTimestamp
     val timestamp: Date? = null
 )
