@@ -7,6 +7,7 @@ import com.firebase.geofire.GeoLocation
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.mojgrad.data.model.Problem
+import com.mojgrad.data.model.ProblemStatus
 import com.mojgrad.data.model.Vote
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -346,6 +347,13 @@ class ListViewModel : ViewModel() {
             return
         }
         
+        // Sprečavanje glasanja za rešene probleme
+        if (problem.status == ProblemStatus.RESENO) {
+            _errorMessage.value = "Ne možete glasati za rešene probleme"
+            println("DEBUG: User trying to vote for resolved problem")
+            return
+        }
+        
         viewModelScope.launch {
             try {
                 val hasVoted = _userVotes.value[problem.id] == true
@@ -402,8 +410,16 @@ class ListViewModel : ViewModel() {
                 throw Exception("Ne možete glasati za sopstvene probleme")
             }
             
+            val problemStatus = problemSnapshot.getString("status") ?: ProblemStatus.PRIJAVLJENO
+            if (problemStatus == ProblemStatus.RESENO) {
+                throw Exception("Ne možete glasati za rešene probleme")
+            }
+            
+            // Umesto da bacamo grešku, jednostavno ignorišemo ako vote već postoji
+            // Ovo rešava race condition problema
             if (existingVoteSnapshot.exists()) {
-                throw Exception("Već ste glasali za ovaj problem")
+                println("DEBUG: Vote already exists for problem $problemId by user $userId, skipping...")
+                return@runTransaction null // Izlazimo iz transakcije bez greške
             }
             
             // === FAZA 3: SVI WRITE-OVI POSLE SVIH READ-OVA ===
@@ -463,11 +479,17 @@ class ListViewModel : ViewModel() {
             // === FAZA 2: VALIDACIJA ===
             
             if (!voteSnapshot.exists()) {
-                throw Exception("Vote ne postoji")
+                println("DEBUG: Vote doesn't exist for problem $problemId by user $userId, skipping...")
+                return@runTransaction null // Izlazimo bez greške
             }
             
             if (!problemSnapshot.exists()) {
                 throw Exception("Problem više ne postoji")
+            }
+            
+            val problemStatus = problemSnapshot.getString("status") ?: ProblemStatus.PRIJAVLJENO
+            if (problemStatus == ProblemStatus.RESENO) {
+                throw Exception("Ne možete ukloniti glas sa rešenih problema")
             }
             
             // === FAZA 3: SVI WRITE-OVI POSLE SVIH READ-OVA ===
@@ -519,6 +541,65 @@ class ListViewModel : ViewModel() {
             "totalPoints" to newTotalPoints,
             "monthlyPoints" to updatedMonthlyPoints
         ))
+    }
+    
+    fun toggleProblemStatus(problem: Problem) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            _errorMessage.value = "Morate biti ulogovani"
+            return
+        }
+        
+        viewModelScope.launch {
+            try {
+                val newStatus = when (problem.status) {
+                    ProblemStatus.PRIJAVLJENO -> ProblemStatus.RESENO
+                    ProblemStatus.RESENO -> ProblemStatus.PRIJAVLJENO
+                    else -> ProblemStatus.PRIJAVLJENO
+                }
+                
+                println("DEBUG: Admin changing problem ${problem.id} status from ${problem.status} to $newStatus")
+                
+                // Update problem status using transaction for consistency
+                db.runTransaction { transaction ->
+                    val problemRef = db.collection("problems").document(problem.id)
+                    val problemSnapshot = transaction.get(problemRef)
+                    
+                    if (!problemSnapshot.exists()) {
+                        throw Exception("Problem više ne postoji")
+                    }
+                    
+                    val updates = mutableMapOf<String, Any>(
+                        "status" to newStatus,
+                        "lastModifiedBy" to currentUser.uid,
+                        "lastModifiedAt" to System.currentTimeMillis()
+                    )
+                    
+                    // Add reward points if marking as resolved
+                    if (newStatus == ProblemStatus.RESENO) {
+                        val problemAuthorId = problemSnapshot.getString("userId")
+                        if (problemAuthorId != null) {
+                            val authorRef = db.collection("users").document(problemAuthorId)
+                            val authorSnapshot = transaction.get(authorRef)
+                            if (authorSnapshot.exists()) {
+                                updateUserPointsInTransaction(transaction, authorRef, authorSnapshot, 5)
+                            }
+                        }
+                    }
+                    
+                    transaction.update(problemRef, updates)
+                }.await()
+                
+                println("DEBUG: Problem ${problem.id} status changed to $newStatus successfully")
+                
+                // Refresh problems to reflect the status change
+                fetchProblems()
+                
+            } catch (e: Exception) {
+                _errorMessage.value = "Greška prilikom menjanja statusa: ${e.message}"
+                println("DEBUG: Error changing problem status: ${e.message}")
+            }
+        }
     }
     
     fun clearError() {

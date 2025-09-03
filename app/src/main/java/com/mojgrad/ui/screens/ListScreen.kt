@@ -12,6 +12,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +22,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.mojgrad.data.model.Problem
+import com.mojgrad.data.model.User
+import com.mojgrad.data.model.ProblemStatus
 import com.mojgrad.ui.viewmodel.ListViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -29,6 +32,7 @@ import java.util.*
 @Composable
 fun ListScreen(
     onMapClick: (Problem) -> Unit = {},
+    currentUser: User? = null,
     viewModel: ListViewModel = viewModel()
 ) {
     val problems by viewModel.problems.collectAsState()
@@ -162,7 +166,8 @@ fun ListScreen(
                         problem = problem,
                         hasVoted = userVotes[problem.id] == true,
                         onVoteClick = { viewModel.toggleVoteForProblem(problem) },
-                        onMapClick = { onMapClick(problem) }
+                        onMapClick = { onMapClick(problem) },
+                        currentUser = currentUser
                     )
                 }
             }
@@ -183,7 +188,8 @@ fun ProblemListItem(
     problem: Problem,
     hasVoted: Boolean,
     onVoteClick: () -> Unit,
-    onMapClick: () -> Unit
+    onMapClick: () -> Unit,
+    currentUser: User?
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -252,49 +258,67 @@ fun ProblemListItem(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Vote dugme
+                // Vote dugme - disable za rešene probleme ili sopstvene probleme
+                val isResolved = problem.status == ProblemStatus.RESENO
+                val isOwnProblem = currentUser != null && problem.userId == currentUser.uid
+                val canVote = !isResolved && !isOwnProblem
+                
                 OutlinedButton(
-                    onClick = onVoteClick,
+                    onClick = if (canVote) onVoteClick else { {} },
                     modifier = Modifier.height(36.dp),
-                    colors = if (hasVoted) {
-                        ButtonDefaults.outlinedButtonColors(
+                    enabled = canVote,
+                    colors = when {
+                        !canVote -> ButtonDefaults.outlinedButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        hasVoted -> ButtonDefaults.outlinedButtonColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                    } else {
-                        ButtonDefaults.outlinedButtonColors()
+                        else -> ButtonDefaults.outlinedButtonColors()
                     }
                 ) {
                     Icon(
-                        Icons.Default.ThumbUp,
+                        if (isResolved) Icons.Default.CheckCircle else Icons.Default.ThumbUp,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
-                        tint = if (hasVoted) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
+                        tint = when {
+                            !canVote -> MaterialTheme.colorScheme.onSurfaceVariant
+                            hasVoted -> MaterialTheme.colorScheme.onPrimaryContainer
+                            else -> MaterialTheme.colorScheme.primary
+                        }
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "${problem.votes}",
+                        text = if (isResolved) "Rešeno" else "${problem.votes}",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
                 
-                // Map dugme
-                if (problem.location != null) {
-                    OutlinedButton(
-                        onClick = onMapClick,
-                        modifier = Modifier.height(36.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.Place,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Lokacija",
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                // Buttons row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Map dugme
+                    if (problem.location != null) {
+                        OutlinedButton(
+                            onClick = onMapClick,
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Place,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "Lokacija",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
             }

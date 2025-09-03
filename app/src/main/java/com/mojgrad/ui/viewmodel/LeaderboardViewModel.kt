@@ -34,8 +34,9 @@ class LeaderboardViewModel : ViewModel() {
         _isLoading.value = true
         _errorMessage.value = null
         
-        // Real-time listener za leaderboard - sortiramo po trenutnom mesecu
+        // Real-time listener za leaderboard - isključujemo adminne direktno u query-u
         firestore.collection("users")
+            .whereEqualTo("isAdmin", false) // Samo non-admin korisnici
             .limit(50) // Top 50 korisnika
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
@@ -57,7 +58,7 @@ class LeaderboardViewModel : ViewModel() {
                     
                     _users.value = userList
                     _isLoading.value = false
-                    println("DEBUG: Real-time leaderboard update - Učitano ${userList.size} korisnika za mesec $currentMonth")
+                    println("DEBUG: Real-time leaderboard update - Učitano ${userList.size} non-admin korisnika za mesec $currentMonth")
                 } else {
                     println("DEBUG: No leaderboard data")
                     _isLoading.value = false

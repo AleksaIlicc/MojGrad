@@ -121,6 +121,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             when (val result = authRepository.getUserFromFirestore(uid)) {
                 is AuthResult.Success -> {
                     println("DEBUG: User data loaded successfully: ${result.data?.name}")
+                    println("DEBUG: User is admin: ${result.data?.admin}")
                     println("DEBUG: User image URL: ${result.data?.profileImageUrl}")
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,

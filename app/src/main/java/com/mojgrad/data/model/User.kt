@@ -15,5 +15,6 @@ data class User(
     val totalPoints: Long = 0L,
     val monthlyPoints: Map<String, Long> = emptyMap(), // Format: "2025-08" -> 320
     val lastLocation: GeoPoint? = null, // Poslednja poznata lokacija korisnika
-    val lastLocationUpdate: Long = 0L // Timestamp poslednjeg ažuriranja lokacije
+    val lastLocationUpdate: Long = 0L, // Timestamp poslednjeg ažuriranja lokacije
+    val admin: Boolean = false
 )

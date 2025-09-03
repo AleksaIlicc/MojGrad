@@ -225,12 +225,12 @@ fun UserProfileScreen(
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text(
-                                        text = "Obaveštenja o blizini",
+                                        text = "Obaveštenja",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
-                                        text = "Prikaži notifikacije kad sam blizu prijavljenih problema",
+                                        text = "Notifikacije o problemima u blizini",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

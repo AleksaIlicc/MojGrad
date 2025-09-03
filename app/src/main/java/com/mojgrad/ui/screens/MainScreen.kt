@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.google.android.gms.maps.model.LatLng
+import com.mojgrad.ui.viewmodel.AuthViewModel
 import com.mojgrad.ui.viewmodel.ListViewModel
 import com.mojgrad.ui.viewmodel.MapViewModel
 
@@ -37,6 +39,16 @@ fun MainScreen(
     // Shared ViewModels for both Map and List screens
     val listViewModel: ListViewModel = viewModel()
     val mapViewModel: MapViewModel = viewModel()
+    val authViewModel: AuthViewModel = viewModel()
+    
+    // Get current user for role-based navigation
+    val authUiState by authViewModel.uiState.collectAsState()
+    val currentUser = authUiState.currentUser
+    
+    // Debug log to check admin status
+    LaunchedEffect(currentUser) {
+        println("DEBUG: MainScreen - CurrentUser: ${currentUser?.name}, admin: ${currentUser?.admin}")
+    }
     
     // Observe location from MapViewModel and update ListViewModel
     val currentLocation by mapViewModel.currentLocation.collectAsState()
@@ -48,55 +60,66 @@ fun MainScreen(
         )
     }
     
-    val tabs = listOf(
-        Triple("Mapa", Icons.Default.LocationOn, "mapa"),
-        Triple("Lista", Icons.Default.List, "lista"),
-        Triple("Rang Lista", Icons.Default.Star, "rang"),
-        Triple("Profil", Icons.Default.Person, "profil")
-    )
+    // Admin users get a completely different interface - no navigation tabs
+    if (currentUser?.admin == true) {
+        // Admin interface - just the admin screen without navigation
+        AdminScreen(
+            listViewModel = listViewModel,
+            onSignOut = onSignOut
+        )
+    } else {
+        // Regular user interface with navigation tabs
+        val tabs = listOf(
+            Triple("Mapa", Icons.Default.LocationOn, "mapa"),
+            Triple("Lista", Icons.Default.List, "lista"),
+            Triple("Rang Lista", Icons.Default.Star, "rang"),
+            Triple("Profil", Icons.Default.Person, "profil")
+        )
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                tabs.forEachIndexed { index, (title, icon, _) ->
-                    NavigationBarItem(
-                        icon = { Icon(icon, contentDescription = title) },
-                        label = { Text(title) },
-                        selected = selectedTabIndex == index,
-                        onClick = { 
-                            selectedTabIndex = index
-                            // Reset target location when navigating to map tab directly
-                            if (index == 0) {
-                                targetLocation = null
+        Scaffold(
+            bottomBar = {
+                NavigationBar {
+                    tabs.forEachIndexed { index, (title, icon, _) ->
+                        NavigationBarItem(
+                            icon = { Icon(icon, contentDescription = title) },
+                            label = { Text(title) },
+                            selected = selectedTabIndex == index,
+                            onClick = { 
+                                selectedTabIndex = index
+                                // Reset target location when navigating to map tab directly
+                                if (index == 0) {
+                                    targetLocation = null
+                                }
                             }
-                        }
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
-        when (selectedTabIndex) {
-            0 -> MapScreen(
-                modifier = Modifier.padding(innerPadding),
-                mapViewModel = mapViewModel,
-                listViewModel = listViewModel,
-                rootNavController = rootNavController,
-                targetLocation = targetLocation
-            )
-            1 -> ListScreen(
-                viewModel = listViewModel,
-                onMapClick = { problem ->
-                    // Navigate to map and show specific problem
-                    problem.location?.let { geoPoint ->
-                        targetLocation = LatLng(geoPoint.latitude, geoPoint.longitude)
-                        selectedTabIndex = 0
+                        )
                     }
                 }
-            )
-            2 -> LeaderboardScreen()
-            3 -> UserProfileScreen(
-                onSignOut = onSignOut
-            )
+            }
+        ) { innerPadding ->
+            when (selectedTabIndex) {
+                0 -> MapScreen(
+                    modifier = Modifier.padding(innerPadding),
+                    mapViewModel = mapViewModel,
+                    listViewModel = listViewModel,
+                    rootNavController = rootNavController,
+                    targetLocation = targetLocation
+                )
+                1 -> ListScreen(
+                    viewModel = listViewModel,
+                    currentUser = currentUser,
+                    onMapClick = { problem ->
+                        // Navigate to map and show specific problem
+                        problem.location?.let { geoPoint ->
+                            targetLocation = LatLng(geoPoint.latitude, geoPoint.longitude)
+                            selectedTabIndex = 0
+                        }
+                    }
+                )
+                2 -> LeaderboardScreen()
+                3 -> UserProfileScreen(
+                    onSignOut = onSignOut
+                )
+            }
         }
     }
 }

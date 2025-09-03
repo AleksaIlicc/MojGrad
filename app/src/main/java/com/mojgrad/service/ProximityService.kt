@@ -10,7 +10,6 @@ import androidx.core.app.NotificationManagerCompat
 import com.google.android.gms.maps.model.LatLng
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
 import com.firebase.geofire.GeoFireUtils
 import com.firebase.geofire.GeoLocation
 import com.mojgrad.R
@@ -49,7 +48,6 @@ class ProximityService : Service() {
     private lateinit var notificationManager: NotificationManagerCompat
     
     private var serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private var problemsListener: ListenerRegistration? = null
     private var lastNotifiedProblems = mutableSetOf<String>()
     
     private val proximityRadiusKm = DEFAULT_RADIUS_KM
@@ -79,7 +77,6 @@ class ProximityService : Service() {
     
     override fun onDestroy() {
         super.onDestroy()
-        problemsListener?.remove()
         serviceScope.cancel()
     }
     
@@ -209,7 +206,7 @@ class ProximityService : Service() {
                                 
                                 // Ukloni iz liste nakon 2 minuta da može ponovo da obavesti
                                 serviceScope.launch {
-                                    delay(2 * 60 * 1000) // 2 minuta
+                                    delay(5 * 60 * 1000) // 2 minuta
                                     lastNotifiedProblems.remove(problem.id)
                                     println("DEBUG: ProximityService - Removed ${problem.id} from cooldown list after 2 minutes")
                                 }
