@@ -17,10 +17,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.mojgrad.data.model.Problem
 import com.mojgrad.data.model.User
 import com.mojgrad.data.model.ProblemStatus
@@ -249,6 +252,20 @@ fun ProblemListItem(
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis
             )
+            
+            // Slika problema (ako postoji)
+            if (!problem.imageUrl.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                AsyncImage(
+                    model = problem.imageUrl,
+                    contentDescription = "Slika problema",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 250.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Fit
+                )
+            }
             
             Spacer(modifier = Modifier.height(12.dp))
             

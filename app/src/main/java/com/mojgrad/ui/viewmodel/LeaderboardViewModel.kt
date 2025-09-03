@@ -36,7 +36,7 @@ class LeaderboardViewModel : ViewModel() {
         
         // Real-time listener za leaderboard - isključujemo adminne direktno u query-u
         firestore.collection("users")
-            .whereEqualTo("isAdmin", false) // Samo non-admin korisnici
+            .whereEqualTo("admin", false) 
             .limit(50) // Top 50 korisnika
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {

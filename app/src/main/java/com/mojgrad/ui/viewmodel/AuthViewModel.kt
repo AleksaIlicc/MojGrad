@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 
 data class AuthUiState(
     val isLoading: Boolean = false,
@@ -79,8 +80,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // Registracija korisnika
-    fun signUp(email: String, password: String, name: String, phone: String, imageUri: Uri?) {
+    fun signUp(email: String, password: String, name: String, phone: String, imageUri: String?) {
+        println("DEBUG: AuthViewModel.signUp called with email: $email, imageUri: $imageUri")
+        
         if (email.isBlank() || password.isBlank() || name.isBlank() || phone.isBlank()) {
+            println("DEBUG: Validation failed - empty fields")
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Sva polja su obavezna"
             )
@@ -88,35 +92,51 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         if (password.length < 6) {
+            println("DEBUG: Validation failed - password too short")
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Lozinka mora imati najmanje 6 karaktera"
             )
             return
         }
 
+        println("DEBUG: Starting registration process...")
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+                println("DEBUG: UI state set to loading")
 
-            when (val result = authRepository.signUp(email, password, name, phone, imageUri)) {
-                is AuthResult.Success -> {
-                    // UI state će biti ažuriran preko getAuthStateFlow()
+                println("DEBUG: Calling authRepository.signUp...")
+                when (val result = authRepository.signUp(email, password, name, phone, imageUri)) {
+                    is AuthResult.Success -> {
+                        println("DEBUG: Registration successful")
+                        // UI state će biti ažuriran preko getAuthStateFlow()
+                    }
+                    is AuthResult.Error -> {
+                        println("DEBUG: Registration failed with error: ${result.message}")
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = result.message
+                        )
+                    }
+                    is AuthResult.Loading -> {
+                        println("DEBUG: Registration still loading")
+                        // Već je loading = true
+                    }
                 }
-                is AuthResult.Error -> {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = result.message
-                    )
-                }
-                is AuthResult.Loading -> {
-                    // Već je loading = true
-                }
+            } catch (e: Exception) {
+                println("DEBUG: Exception in AuthViewModel.signUp: ${e.message}")
+                e.printStackTrace()
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = "Greška tokom registracije: ${e.message}"
+                )
             }
         }
     }
 
-    // Učitavanje korisničkih podataka
-    private fun loadUserData(uid: String) {
-        println("DEBUG: Loading user data for UID: $uid")
+    // Učitavanje korisničkih podataka sa retry logikom
+    private fun loadUserData(uid: String, retryCount: Int = 0) {
+        println("DEBUG: Loading user data for UID: $uid (attempt ${retryCount + 1})")
         viewModelScope.launch {
             when (val result = authRepository.getUserFromFirestore(uid)) {
                 is AuthResult.Success -> {
@@ -132,11 +152,19 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 is AuthResult.Error -> {
                     println("DEBUG: Failed to load user data: ${result.message}")
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        isLoggedIn = true, // Korisnik je i dalje ulogovan u Firebase
-                        errorMessage = result.message
-                    )
+                    
+                    // Retry up to 3 times with delay for new registrations
+                    if (retryCount < 3) {
+                        println("DEBUG: Retrying to load user data in 2 seconds (attempt ${retryCount + 2})")
+                        delay(2000)
+                        loadUserData(uid, retryCount + 1)
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isLoggedIn = true, // Korisnik je i dalje ulogovan u Firebase
+                            errorMessage = result.message
+                        )
+                    }
                 }
                 is AuthResult.Loading -> {
                     println("DEBUG: Loading user data...")

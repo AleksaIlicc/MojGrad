@@ -14,6 +14,7 @@ data class Problem(
     val authorName: String = "", // Ime i prezime autora
     val votes: Int = 0,
     val status: String = "PRIJAVLJENO",
+    val imageUrl: String? = null, // URL slike problema
     @ServerTimestamp
     val timestamp: Date? = null
 )

@@ -25,7 +25,7 @@ class AddProblemViewModel(application: Application) : AndroidViewModel(applicati
     private val auth = FirebaseAuth.getInstance()
     private val locationManager = LocationManager.getInstance(application)
 
-    fun addProblem(description: String, category: String) {
+    fun addProblem(description: String, category: String, imageUrl: String? = null) {
         println("DEBUG: AddProblemViewModel - Starting to add problem")
         _uploadState.value = UploadState.UPLOADING
         
@@ -46,14 +46,15 @@ class AddProblemViewModel(application: Application) : AndroidViewModel(applicati
             }
             
             println("DEBUG: Creating problem at location: ${location.latitude}, ${location.longitude}")
-            saveProblemToFirestore(description, category, location)
+            saveProblemToFirestore(description, category, location, imageUrl)
         }
     }
 
     private fun saveProblemToFirestore(
         description: String, 
         category: String, 
-        location: Location
+        location: Location,
+        imageUrl: String? = null
     ) {
         val currentUser = auth.currentUser
         if (currentUser == null) {
@@ -82,7 +83,8 @@ class AddProblemViewModel(application: Application) : AndroidViewModel(applicati
                     "userId" to currentUser.uid,
                     "authorName" to authorName,
                     "status" to "PRIJAVLJENO", // Eksplicitno postavljamo status na "PRIJAVLJENO"
-                    "votes" to 0 // Početna vrednost glasova
+                    "votes" to 0, // Početna vrednost glasova
+                    "imageUrl" to imageUrl // URL slike problema
                 )
 
                 firestore.collection("problems")

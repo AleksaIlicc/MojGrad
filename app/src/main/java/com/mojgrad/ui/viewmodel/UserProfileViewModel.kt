@@ -57,6 +57,8 @@ class UserProfileViewModel : ViewModel() {
         _isLoading.value = true
         _errorMessage.value = null
         
+        println("DEBUG: UserProfileViewModel - Attempting to load user profile for: $userId")
+        
         // Ukloni postojeći listener ako postoji
         userListener?.remove()
         
@@ -70,13 +72,19 @@ class UserProfileViewModel : ViewModel() {
                     return@addSnapshotListener
                 }
                 
+                println("DEBUG: UserProfileViewModel - Firestore snapshot received for $userId")
+                println("DEBUG: UserProfileViewModel - Snapshot exists: ${snapshot?.exists()}")
+                println("DEBUG: UserProfileViewModel - Snapshot data: ${snapshot?.data}")
+                
                 if (snapshot != null && snapshot.exists()) {
                     val user = snapshot.toObject(User::class.java)?.copy(uid = snapshot.id)
                     _currentUser.value = user
                     println("DEBUG: UserProfileViewModel - Učitan korisnik: ${user?.name}, poeni: ${user?.totalPoints}")
                 } else {
-                    _errorMessage.value = "Profil korisnika nije pronađen"
-                    println("DEBUG: UserProfileViewModel - Profil korisnika $userId nije pronađen")
+                    _errorMessage.value = "Profil korisnika nije pronađen u Firestore bazi"
+                    println("DEBUG: UserProfileViewModel - Profil korisnika $userId nije pronađen u Firestore")
+                    println("DEBUG: UserProfileViewModel - PROBLEM: Korisnik postoji u Authentication ali se nije sačuvao u Firestore tijekom registracije!")
+                    println("DEBUG: UserProfileViewModel - Provjerite da li se AuthRepository.saveUserToFirestore() poziva uspješno")
                 }
                 _isLoading.value = false
             }

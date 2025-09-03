@@ -29,6 +29,13 @@ android {
 
         val mapsApiKey = localProperties.getProperty("MAPS_API_KEY") ?: ""
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        
+        // R2 credentials
+        buildConfigField("String", "R2_ACCESS_KEY", "\"${localProperties.getProperty("R2_ACCESS_KEY") ?: ""}\"")
+        buildConfigField("String", "R2_SECRET_KEY", "\"${localProperties.getProperty("R2_SECRET_KEY") ?: ""}\"")
+        buildConfigField("String", "R2_BUCKET_NAME", "\"${localProperties.getProperty("R2_BUCKET_NAME") ?: ""}\"")
+        buildConfigField("String", "R2_ENDPOINT", "\"${localProperties.getProperty("R2_ENDPOINT") ?: ""}\"")
+        buildConfigField("String", "R2_PUBLIC_URL", "\"${localProperties.getProperty("R2_PUBLIC_URL") ?: ""}\"")
     }
 
     buildTypes {
@@ -41,14 +48,28 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "1.8"
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.1"
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/DEPENDENCIES"
+            excludes += "META-INF/LICENSE"
+            excludes += "META-INF/LICENSE.txt"
+            excludes += "META-INF/NOTICE"
+            excludes += "META-INF/NOTICE.txt"
+        }
     }
 }
 
@@ -75,6 +96,9 @@ dependencies {
     implementation("com.firebase:geofire-android-common:3.2.0")
     // Coroutines for Firebase Tasks
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
+    // AWS SDK for Kotlin (supports EnableAwsChunked for R2 compatibility)
+    implementation("aws.sdk.kotlin:s3:1.0.30")
+    implementation("aws.sdk.kotlin:aws-core:1.0.30")
     // Other dependencies
     implementation(libs.coil.compose)
     testImplementation(libs.junit)

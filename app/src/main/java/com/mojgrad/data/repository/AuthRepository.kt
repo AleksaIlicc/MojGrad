@@ -8,6 +8,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.mojgrad.data.model.AuthResult
 import com.mojgrad.data.model.User
+import com.mojgrad.service.ImageUploadService
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -17,7 +18,7 @@ import kotlinx.coroutines.withTimeout
 class AuthRepository(private val context: Context) {
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
-    private val storage = FirebaseStorage.getInstance()
+    private val imageUploadService = ImageUploadService(context)
 
     val currentUser: FirebaseUser? get() = auth.currentUser
 
@@ -46,7 +47,7 @@ class AuthRepository(private val context: Context) {
         password: String,
         name: String,
         phone: String,
-        imageUri: Uri?
+        imageUri: String?
     ): AuthResult<FirebaseUser> {
         return try {
             println("DEBUG: Starting signUp process for email: $email")
@@ -58,18 +59,71 @@ class AuthRepository(private val context: Context) {
             val firebaseUser = authResult.user!!
             println("DEBUG: Firebase user created successfully with UID: ${firebaseUser.uid}")
 
-            // 2. Čuvanje korisničkih podataka u Firestore (bez slike)
+            // 2. Handle profile image
+            var profileImageUrl = ""
+            if (imageUri != null) {
+                // Check if imageUri is already a URL (uploaded from RegistrationScreen)
+                if (imageUri.startsWith("http://") || imageUri.startsWith("https://")) {
+                    println("DEBUG: Image already uploaded, using provided URL: $imageUri")
+                    profileImageUrl = imageUri
+                } else {
+                    // It's a local URI, need to upload
+                    try {
+                        println("DEBUG: Uploading profile image to R2...")
+                        val uploadResult = imageUploadService.uploadImage(Uri.parse(imageUri))
+                        println("DEBUG: Upload result received: $uploadResult")
+                        uploadResult.fold(
+                            onSuccess = { uploadResponse ->
+                                profileImageUrl = uploadResponse.url
+                                println("DEBUG: Profile image uploaded successfully: $profileImageUrl")
+                                println("DEBUG: Upload response: key=${uploadResponse.key}, size=${uploadResponse.size}")
+                            },
+                            onFailure = { exception ->
+                                println("DEBUG: Failed to upload profile image: ${exception.message}")
+                                println("DEBUG: Exception type: ${exception::class.java}")
+                                exception.printStackTrace()
+                                // Continue without image rather than failing registration
+                            }
+                        )
+                    } catch (e: Exception) {
+                        println("DEBUG: Failed to upload profile image: ${e.message}")
+                        println("DEBUG: Exception in catch block: ${e::class.java}")
+                        e.printStackTrace()
+                        // Continue without image rather than failing registration
+                    }
+                }
+            }
+
+            // 3. Čuvanje korisničkih podataka u Firestore sa slikom
             val user = User(
                 uid = firebaseUser.uid,
                 email = email,
                 name = name,
                 phoneNumber = phone,
-                profileImageUrl = "" // Uvek prazan string
+                profileImageUrl = profileImageUrl
             )
-            println("DEBUG: User object created, saving to Firestore...")
+            println("DEBUG: User object created with profileImageUrl: $profileImageUrl")
 
-            saveUserToFirestore(user)
-            println("DEBUG: User saved to Firestore successfully")
+            try {
+                saveUserToFirestore(user)
+                println("DEBUG: User saved to Firestore successfully")
+            } catch (e: Exception) {
+                println("DEBUG: CRITICAL ERROR - Failed to save user to Firestore: ${e.message}")
+                // Pokušaj ponovno bez slike ako je problem sa slikom
+                if (profileImageUrl.isNotEmpty()) {
+                    println("DEBUG: Retrying save without profile image...")
+                    val userWithoutImage = user.copy(profileImageUrl = "")
+                    try {
+                        saveUserToFirestore(userWithoutImage)
+                        println("DEBUG: User saved to Firestore successfully (without image)")
+                    } catch (e2: Exception) {
+                        println("DEBUG: FATAL ERROR - Cannot save user to Firestore even without image: ${e2.message}")
+                        throw e2
+                    }
+                } else {
+                    throw e
+                }
+            }
 
             AuthResult.Success(firebaseUser)
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
@@ -93,6 +147,8 @@ class AuthRepository(private val context: Context) {
             }
             
             val errorMessage = when {
+                e.message?.contains("email address is already in use", ignoreCase = true) == true ->
+                    "Email adresa je već registrovana. Molimo pokušajte sa drugim email-om ili se prijavite."
                 e.message?.contains("network", ignoreCase = true) == true -> 
                     "Mrežna greška. Proverite internetsku vezu i pokušajte ponovo."
                 e.message?.contains("timeout", ignoreCase = true) == true -> 
@@ -175,8 +231,7 @@ class AuthRepository(private val context: Context) {
             AuthResult.Error(e.message ?: "Greška pri dohvatanju korisnika")
         }
     }
-
-    // Odjava korisnika
+    
     fun signOut() {
         auth.signOut()
     }
