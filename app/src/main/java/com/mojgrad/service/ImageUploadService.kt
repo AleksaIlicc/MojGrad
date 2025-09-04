@@ -107,8 +107,9 @@ class ImageUploadService(private val context: Context) {
             } else {
                 "$publicUrl/$key"
             }
-            
-        } 
+        } else {
+            key
+        }
     }
 
     suspend fun deleteFile(key: String): Result<Boolean> = withContext(Dispatchers.IO) {

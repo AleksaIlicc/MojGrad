@@ -117,15 +117,14 @@ class AuthRepository(private val context: Context) {
                 }
             }
 
-            AuthResult.Success(firebaseUser)
+            return AuthResult.Success(firebaseUser)
         } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
             println("DEBUG: Signup timeout - mrežni problem")
-            AuthResult.Error("Zahtev je istekao. Proverite internetsku vezu i pokušajte ponovo.")
+            return AuthResult.Error("Zahtev je istekao. Proverite internetsku vezu i pokušajte ponovo.")
         } catch (e: Exception) {
             println("DEBUG: SignUp failed with error: ${e.message}")
             println("DEBUG: Error type: ${e.javaClass.simpleName}")
             e.printStackTrace()
-
 
             try {
                 currentUser?.delete()?.await()
@@ -147,6 +146,7 @@ class AuthRepository(private val context: Context) {
                 else -> e.message ?: "Greška pri registraciji"
             }
 
+            return AuthResult.Error(errorMessage)
         }
     }
 
