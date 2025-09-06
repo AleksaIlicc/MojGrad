@@ -105,6 +105,7 @@ fun MainScreen(
                     targetLocation = targetLocation
                 )
                 1 -> ListScreen(
+                    modifier = Modifier.padding(innerPadding),
                     viewModel = listViewModel,
                     currentUser = currentUser,
                     onMapClick = { problem ->

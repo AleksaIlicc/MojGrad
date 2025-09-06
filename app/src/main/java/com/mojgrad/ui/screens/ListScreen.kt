@@ -34,6 +34,7 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListScreen(
+    modifier: Modifier = Modifier,
     onMapClick: (Problem) -> Unit = {},
     currentUser: User? = null,
     viewModel: ListViewModel = viewModel()
@@ -47,7 +48,7 @@ fun ListScreen(
     var showFilterDialog by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = modifier.fillMaxSize()
     ) {
 
         TopAppBar(
